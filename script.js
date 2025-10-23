@@ -79,7 +79,8 @@ const state = {
     ],
     panels: {
         conversation: false,
-        history: false
+    history: false,
+    authorization: false
     },
     modals: {
         actionItem: false,
@@ -120,6 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('[data-action="toggle-conversation"]')) {
             state.panels.conversation = !state.panels.conversation;
         }
+if (e.target.closest('[data-action="toggle-authorization"]')) {
+    state.panels.authorization = !state.panels.authorization;
+}
         if (e.target.closest('[data-action="toggle-history"]')) {
             state.panels.history = !state.panels.history;
         }
@@ -153,6 +157,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+        if (e.target.closest('[data-action="toggle-group-applicability"]')) {
+            const groupName = e.target.closest('[data-action="toggle-group-applicability"]').dataset.group;
+            const group = state.riskAssessment.groups.find(g => g.name === groupName);
+            if (group) {
+                group.applicable = !group.applicable;
+            }
+        }
         if (e.target.closest('[data-action="toggle-all-assessments"]')) {
             const allIds = state.riskAssessment.groups.flatMap(g => g.categories.map(c => c.id));
             if (state.riskAssessment.selected.length === allIds.length) {
@@ -163,9 +174,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (e.target.closest('td[data-field]')) {
             const Td = e.target.closest('td[data-field]');
-            const categoryId = parseInt(Td.dataset.id, 10);
-            const field = Td.dataset.field;
-            state.riskAssessment.editing = { categoryId, field };
+            if (!Td.classList.contains('editing')) {
+                const categoryId = parseInt(Td.dataset.id, 10);
+                const field = Td.dataset.field;
+                state.riskAssessment.editing = { categoryId, field, originalValue: getCategoryValue(categoryId, field) };
+            }
+        }
+        if (e.target.closest('[data-action="save-edit"]')) {
+            state.riskAssessment.editing = null;
+        }
+        if (e.target.closest('[data-action="cancel-edit"]')) {
+            const { categoryId, field, originalValue } = state.riskAssessment.editing;
+            setCategoryValue(categoryId, field, originalValue);
+            state.riskAssessment.editing = null;
+        }
+        if (e.target.closest('[data-action="toggle-attachments"]')) {
+            const categoryId = parseInt(e.target.closest('[data-action="toggle-attachments"]').dataset.categoryId, 10);
+            state.riskAssessment.editing = { categoryId, field: 'attachments' };
         }
         if (e.target.closest('[data-action="open-bulk-actions"]')) {
             const action = e.target.closest('[data-action="open-bulk-actions"]').dataset.actionType;
@@ -181,6 +206,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             state.modals.bulkActionsOpen = null;
+        }
+
+        if (e.target.closest('[data-action="delete-attachment"]')) {
+            const categoryId = parseInt(e.target.closest('[data-action="delete-attachment"]').dataset.categoryId, 10);
+            const attachmentId = parseInt(e.target.closest('[data-action="delete-attachment"]').dataset.attachmentId, 10);
+            const category = state.riskAssessment.groups
+                .flatMap(g => g.categories)
+                .find(c => c.id === categoryId);
+            if (category) {
+                category.attachments = category.attachments.filter(att => att.id !== attachmentId);
+            }
         }
 
         render();
@@ -214,11 +250,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.body.addEventListener('blur', (e) => {
         if (e.target.matches('[data-action="update-field"]')) {
-            state.riskAssessment.editing = null;
-            render();
+            // state.riskAssessment.editing = null;
+            // render();
         }
     }, true);
 });
+
+const getCategoryValue = (categoryId, field) => {
+    const category = state.riskAssessment.groups
+        .flatMap(g => g.categories)
+        .find(c => c.id === categoryId);
+    return category ? category[field] : null;
+};
+
+const setCategoryValue = (categoryId, field, value) => {
+    const category = state.riskAssessment.groups
+        .flatMap(g => g.categories)
+        .find(c => c.id === categoryId);
+    if (category) {
+        category[field] = value;
+    }
+};
 
 const App = (data) => `
     <div class="flex flex-col h-screen">
@@ -227,11 +279,11 @@ const App = (data) => `
             <div class="max-w-full mx-auto space-y-6">
                 ${DetailsCard(data.details)}
                 ${RiskAndActionsCard(data)}
-                ${AuthorizationCard(data)}
             </div>
         </main>
         ${SlidingPanel('conversation', "Conversation", ConversationCard(data.conversation), data.panels.conversation)}
         ${SlidingPanel('history', "Status History", StatusHistoryCard(data.statusHistory), data.panels.history)}
+        ${SlidingPanel('authorization', "Authorization", AuthorizationCard(data), data.panels.authorization)}
     </div>
 `;
 
@@ -256,6 +308,9 @@ const PageHeader = (data) => `
                     </button>
                     ${data.unreadConversations > 0 ? `<span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>` : ''}
                 </div>
+                <button data-action="toggle-authorization" class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </button>
                 <button data-action="toggle-history" class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                 </button>
@@ -422,6 +477,7 @@ const AssessmentTab = (data) => {
                     <th class="p-3 font-semibold">Attachments</th>
                     <th class="p-3 font-semibold">Action Items</th>
                     <th class="p-3 font-semibold">History</th>
+                    <th class="p-3 font-semibold">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -431,9 +487,9 @@ const AssessmentTab = (data) => {
                     return `
                     <tr class="bg-gray-50 hover:bg-gray-100">
                         <td class="p-2 w-4"><input type="checkbox" data-action="toggle-assessment-group" data-group="${group.name}" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${allSelectedInGroup ? 'checked' : ''}></td>
-                        <td colSpan="9" class="p-2 text-gray-800 font-bold flex justify-between items-center">
+                        <td colSpan="10" class="p-2 text-gray-800 font-bold flex justify-between items-center">
                             <span>${group.name}</span>
-                            <a href="#" class="text-xs font-medium text-gray-500 hover:text-primary-600">${group.applicable ? "Mark as N/A" : "Mark as Applicable"}</a>
+                            <a href="#" data-action="toggle-group-applicability" data-group="${group.name}" class="text-xs font-medium text-gray-500 hover:text-primary-600">${group.applicable ? "Mark as N/A" : "Mark as Applicable"}</a>
                         </td>
                     </tr>
                     ${group.applicable ? group.categories.map(cat => {
@@ -444,7 +500,7 @@ const AssessmentTab = (data) => {
                             <td class="p-3 w-4"><input type="checkbox" data-action="toggle-assessment-item" data-id="${cat.id}" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${isSelected ? 'checked' : ''}></td>
                             <td class="p-3 font-medium text-gray-900">
                                 <div>${cat.category}</div>
-                                <textarea data-action="update-field" data-id="${cat.id}" data-field="comments" class="w-full text-xs text-gray-500 border-gray-200 rounded-md mt-1 p-1" placeholder="Add a comment...">${cat.comments}</textarea>
+    <textarea data-action="update-field" data-id="${cat.id}" data-field="comments" class="w-full text-xs text-gray-500 border-gray-200 rounded-md mt-1 p-1 comments-box" placeholder="Add a comment...">${cat.comments}</textarea>
                             </td>
                             <td class="p-3" data-field="responsible" data-id="${cat.id}">
                                 ${isEditing && riskAssessment.editing.field === 'responsible' ? 
@@ -482,11 +538,19 @@ const AssessmentTab = (data) => {
                                     `${cat.rating} / ${cat.weightage}`
                                 }
                             </td>
-                            <td class="p-3">${AttachmentsCell(cat.attachments)}</td>
+                            <td class="p-3" data-field="attachments" data-id="${cat.id}">${AttachmentsCell(cat.attachments, cat.id)}</td>
                             <td class="p-3">${ActionItemsCell(cat.actionItems)}</td>
                             <td class="p-3">${HistoryCell(cat.history)}</td>
+<td class="p-3">
+    ${isEditing && riskAssessment.editing.categoryId === cat.id ? `
+        <div class="flex items-center gap-2">
+            <button data-action="save-edit" class="px-2 py-1 rounded-md font-semibold text-xs bg-green-500 text-white hover:bg-green-600">Save</button>
+            <button data-action="cancel-edit" class="px-2 py-1 rounded-md font-semibold text-xs bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+        </div>
+    ` : ''}
+</td>
                         </tr>
-                    `}).join('') : '<tr><td colSpan="10" class="p-4 text-center text-gray-500">This group is not applicable.</td></tr>'}`
+`).join('') : '<tr><td colSpan="11" class="p-4 text-center text-gray-500">This group is not applicable.</td></tr>'}`
                 }).join('')}
             </tbody>
         </table>
@@ -528,15 +592,31 @@ const ActionItemsTab = (data) => `
     </div>
 `;
 
-const AttachmentsCell = (attachments) => `
-    <div class="relative group w-24">
-        <div class="flex items-center justify-center gap-1 cursor-pointer text-gray-500 border-2 border-dashed border-gray-300 rounded-md p-2 text-center hover:border-primary-500 hover:text-primary-600">
+const AttachmentsCell = (attachments, categoryId) => `
+    <div class="relative w-24">
+        <div
+            class="flex items-center justify-center gap-1 cursor-pointer text-gray-500 border-2 border-dashed border-gray-300 rounded-md p-2 text-center hover:border-primary-500 hover:text-primary-600"
+            data-action="toggle-attachments"
+            data-category-id="${categoryId}"
+        >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-2.4-2.4-4.2-4.8-4.8-.4-.1-.8-.2-1.2-.2s-.8.1-1.2.2c-2.4.6-4.2 2.4-4.8 4.8-.3 1.4 0 2.7.7 3.9l-1.9 1.9c-1.2 1.2-1.2 3.1 0 4.2.6.6 1.4.9 2.1.9s1.5-.3 2.1-.9L12 19.5l1.9 1.9c.6.6 1.4.9 2.1.9s1.5-.3 2.1-.9c1.2-1.2 1.2-3.1 0-4.2l-1.9-1.9z"></path><path d="M12 11v4"></path></svg>
             <span class="font-medium text-xs">${attachments.length}</span>
         </div>
-        ${attachments.length > 0 ? `
-        <div class="absolute z-30 bottom-full mb-2 w-60 bg-white border rounded-md shadow-lg p-2 hidden group-hover:block">
-            <ul class="space-y-1">${attachments.map(att => `<li class="flex justify-between items-center text-sm p-1 hover:bg-gray-100 rounded-md"><a href="#" class="truncate text-gray-700">${att.name}</a></li>`).join('')}</ul>
+        ${state.riskAssessment.editing && state.riskAssessment.editing.categoryId === categoryId && state.riskAssessment.editing.field === 'attachments' ? `
+        <div class="absolute z-30 bottom-full mb-2 w-60 bg-white border rounded-md shadow-lg p-2">
+            <table class="w-full text-sm">
+                <tbody>
+                    ${attachments.map(att => `
+                        <tr class="border-b last:border-b-0">
+                            <td class="p-1.5 truncate text-gray-700">${att.name}</td>
+                            <td class="p-1.5 text-right">
+                                <a href="#" class="text-primary-600 hover:underline">View</a>
+                                <button data-action="delete-attachment" data-category-id="${categoryId}" data-attachment-id="${att.id}" class="ml-2 text-red-600 hover:underline">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
         </div>
         ` : ''}
     </div>
@@ -626,7 +706,7 @@ const Avatar = (name) => {
 const SlidingPanel = (panel, title, content, isOpen) => `
     <div data-panel="${panel}" class="fixed inset-0 z-40 ${isOpen ? '' : 'hidden'}">
         <div data-action="close-panel" class="absolute inset-0 bg-gray-900/30 panel-overlay"></div>
-        <div class="panel absolute top-0 left-0 h-full bg-white w-full max-w-md shadow-xl transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}">
+        <div class="panel absolute top-0 right-0 h-full bg-white w-full max-w-md shadow-xl transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}">
             <div class="flex flex-col h-full">
                 <div class="flex justify-between items-center p-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-800">${title}</h2>

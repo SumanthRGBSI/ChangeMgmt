@@ -61,3 +61,16 @@ td .inline-textarea {
 .assessment-table-cell[data-field] {
     cursor: pointer;
 }
+
+.comments-box {
+    border: 1px solid #d1d5db;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.comments-box:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    outline: none;
+}
