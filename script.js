@@ -15,7 +15,7 @@ const state = {
         collapsed: { supplierName: "ACME Corp Manufacturing", supplierCode: "ACM-001", partName: "Main Housing Assembly", partNumber: "PN-456-V1", coordinator: "Jane Doe", supplierCoordinator: "John Smith" },
         basicInfo: {
             left: { crNumber: "CR-2025-00123", supplierChangeNumber: "SCN-98765", supplierPartNumber: "PN-456-V1", partName: "Main Housing Assembly", partRevision: "V1", customer: "Global Motors Inc.", coordinator: "Jane Doe", buyer: "Sarah Lee", creationDate: "2025-10-20", categoryType: "Product", changeReason: "Quality Improvement", proposedChange: "This change involves re-tooling the main injection mold to improve material flow and reduce defects.", comments: "Initial review complete. Awaiting risk assessment from engineering." },
-            right: { crName: "Update Main Housing Assembly - V2", program: "Model G - Drivetrain", eNumber: "E-102938", partClassification: "Major Component", initiator: "Alex Chen", secondaryCoordinator: "Mike Brown", changeCategory: "Tooling", targetImplementationDate: "2025-12-01", materialStatus: "Production", links: [{ name: "Engineering Specs", url: "#" }, { name: "CAD Files", url: "#" }] }
+            right: { crName: "Update Main Housing Assembly - V2", program: "Model G - Drivetrain", eNumber: "E-102938", partClassification: "Major Component", initiator: "Alex Chen", secondaryCoordinator: "Mike Brown", changeCategory: "Tooling", targetImplementationDate: "2025-12-01", materialStatus: "Production", links: [{ name: "Engineering Specs", url: "#" }, { name: "CAD Files", url: "#" }] } 
         },
         supplierDetails: { supplier: "ACME Corp Manufacturing (ACM-001)", supplierCoordinator: "John Smith", supplierLocation: "Guadalajara, Mexico", supplierPlant: "ACME Plant #4", supplierCoordinatorEmail: "john.smith@acme.com" },
         additionalDetails: [
@@ -31,12 +31,23 @@ const state = {
         relatedParts: [
             { number: "PN-456-V1-SUB1", name: "Sub-assembly A", revision: "V1" },
             { number: "PN-456-V1-SUB2", name: "Sub-assembly B", revision: "V1" },
+            { number: "PN-456-V1-SUB3", name: "Sub-assembly C", revision: "V1" },
+            { number: "PN-456-V1-SUB4", name: "Sub-assembly D", revision: "V1" },
+            { number: "PN-456-V1-SUB5", name: "Sub-assembly E", revision: "V1" },
+            { number: "PN-456-V1-SUB6", name: "Sub-assembly F", revision: "V1" },
+            { number: "PN-456-V1-SUB7", name: "Sub-assembly G", revision: "V1" },
+            { number: "PN-456-V1-SUB8", name: "Sub-assembly H", revision: "V1" },
+            { number: "PN-456-V1-SUB9", name: "Sub-assembly I", revision: "V1" },
+            { number: "PN-456-V1-SUB10", name: "Sub-assembly J", revision: "V1" },
+            { number: "PN-456-V1-SUB11", name: "Sub-assembly K", revision: "V1" },
+            { number: "PN-456-V1-SUB12", name: "Sub-assembly L", revision: "V1" },
         ]
     },
     riskAssessment: {
         activeTab: 'assessment',
         selected: [],
         editing: null, // { categoryId: null, field: null }
+        expandedAttachments: [],
         groups: [
             { name: "Design & Technical Risk", applicable: true, categories: [
                 { id: 1, category: "Feasibility", responsible: "Alex Chen", dueDate: "2025-11-15", risk: "Medium", status: "In Progress", rating: 4, weightage: 40, comments: "Tooling tests pending.", attachments: [{id: 1, name: 'spec-v1.pdf'}, {id: 2, name: 'test-plan.docx'}], history: [], actionItems: 2 },
@@ -47,8 +58,7 @@ const state = {
             ]},
             { name: "Logistics", applicable: false, categories: [
                 { id: 4, category: "Supply Chain", responsible: "John Smith", dueDate: "2025-11-20", risk: "High", status: "Pending", rating: 0, weightage: 10, comments: "", attachments: [], history: [], actionItems: 0 }
-            ]}
-        ]
+            ]}] 
     },
     actionItems: [
         { id: 1, assessmentCategory: "Cost Analysis", name: "Finalize budget report", responsible: "Sarah Lee", dueDate: "2025-11-12", status: "Completed" },
@@ -79,21 +89,23 @@ const state = {
     ],
     panels: {
         conversation: false,
-        history: false
+        history: false,
+        authorization: false
     },
     modals: {
         actionItem: false,
         signature: false,
         bulkActionsOpen: null
     },
+    isDocumentAccordionOpen: false,
     loggedInUser: "Jane Doe"
 };
 
 const render = () => {
     const root = document.getElementById('root');
     const focusedElement = document.activeElement;
-    const focusedId = focusedElement.dataset.id;
-    const focusedField = focusedElement.dataset.field;
+    const focusedId = focusedElement ? focusedElement.dataset.id : null;
+    const focusedField = focusedElement ? focusedElement.dataset.field : null;
 
     root.innerHTML = App(state);
 
@@ -120,12 +132,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('[data-action="toggle-conversation"]')) {
             state.panels.conversation = !state.panels.conversation;
         }
+        if (e.target.closest('[data-action="toggle-authorization"]')) {
+            state.panels.authorization = !state.panels.authorization;
+        }
         if (e.target.closest('[data-action="toggle-history"]')) {
             state.panels.history = !state.panels.history;
         }
         if (e.target.closest('[data-action="close-panel"]')) {
             const panel = e.target.closest('[data-panel]').dataset.panel;
             state.panels[panel] = false;
+        }
+        if (e.target.closest('[data-action="toggle-document-accordion"]')) {
+            state.isDocumentAccordionOpen = !state.isDocumentAccordionOpen;
+        }
+        if (e.target.closest('[data-action="toggle-attachments"]')) {
+            const id = parseInt(e.target.closest('[data-action="toggle-attachments"]').dataset.id, 10);
+            const index = state.riskAssessment.expandedAttachments.indexOf(id);
+            if (index > -1) {
+                state.riskAssessment.expandedAttachments.splice(index, 1);
+            } else {
+                state.riskAssessment.expandedAttachments.push(id);
+            }
         }
         if (e.target.closest('[data-action="set-risk-tab"]')) {
             state.riskAssessment.activeTab = e.target.closest('[data-action="set-risk-tab"]').dataset.tab;
@@ -137,6 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.riskAssessment.selected.splice(index, 1);
             } else {
                 state.riskAssessment.selected.push(id);
+            }
+        }
+        if (e.target.closest('[data-action="toggle-group-applicability"]')) {
+            const groupName = e.target.closest('[data-action="toggle-group-applicability"]').dataset.group;
+            const group = state.riskAssessment.groups.find(g => g.name === groupName);
+            if (group) {
+                group.applicable = !group.applicable;
             }
         }
         if (e.target.closest('[data-action="toggle-assessment-group"]')) {
@@ -209,6 +243,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     category[field] = value;
                 }
             }
+            render();
+        }
+
+        if (e.target.matches('[data-action="assign-user"]')) {
+            const role = e.target.dataset.role;
+            const user = e.target.value;
+            const authRole = state.authorization.roles.find(r => r.role === role);
+            if(authRole) {
+                authRole.user = user;
+            }
+            render();
         }
     });
 
@@ -227,11 +272,11 @@ const App = (data) => `
             <div class="max-w-full mx-auto space-y-6">
                 ${DetailsCard(data.details)}
                 ${RiskAndActionsCard(data)}
-                ${AuthorizationCard(data)}
             </div>
         </main>
         ${SlidingPanel('conversation', "Conversation", ConversationCard(data.conversation), data.panels.conversation)}
         ${SlidingPanel('history', "Status History", StatusHistoryCard(data.statusHistory), data.panels.history)}
+        ${SlidingPanel('authorization', "Authorization", AuthorizationPanel(data), data.panels.authorization)}
     </div>
 `;
 
@@ -247,7 +292,6 @@ const PageHeader = (data) => `
                     <span class="text-sm font-medium text-gray-600">Overall Status:</span>
                     ${StatusBadge(data.overallStatus)}
                 </div>
-                <button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400">Save</button>
                 <button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Approve</button>
                 <div class="h-8 border-l border-gray-300 mx-2"></div>
                 <div class="relative">
@@ -256,6 +300,9 @@ const PageHeader = (data) => `
                     </button>
                     ${data.unreadConversations > 0 ? `<span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>` : ''}
                 </div>
+                <button data-action="toggle-authorization" class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </button>
                 <button data-action="toggle-history" class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                 </button>
@@ -289,40 +336,43 @@ const CollapsedDetails = (data) => `
 `;
 
 const ExpandedDetails = (data) => `
-    <div class="fade-in border-t border-gray-200">
-        <div class="grid grid-cols-1 lg:grid-cols-3">
-            <div class="lg:col-span-3 p-4">
-                <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Basic Information</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
-                    <div>${Object.entries(data.basicInfo.left).map(([k, v]) => InfoItem(k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), v)).join('')}</div>
-                    <div>${Object.entries(data.basicInfo.right).map(([k, v]) => InfoItem(k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), Array.isArray(v) ? v.map(l => l.name).join(', ') : v)).join('')}</div>
+    <div class="fade-in border-t border-gray-200 p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                <div>
+                    <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Basic Information</h3>
+                    ${Object.entries(data.basicInfo.left).map(([k, v]) => InfoItem(k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), v)).join('')}
+                </div>
+                <div>
+                    <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2 invisible">Basic Information</h3>
+                    ${Object.entries(data.basicInfo.right).map(([k, v]) => InfoItem(k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), Array.isArray(v) ? v.map(l => l.name).join(', ') : v)).join('')}
+                </div>
+            </div>
+            <div class="lg:col-span-1">
+                <div>
+                    <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Supplier Details</h3>
+                    ${Object.entries(data.supplierDetails).map(([k, v]) => InfoItem(k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), v)).join('')}
+                </div>
+                <div class="mt-4">
+                    <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Related Part Number</h3>
+                    <div class="max-h-48 overflow-y-auto border rounded-md">
+                        <table class="w-full text-sm">
+                            <tbody>
+                                ${data.relatedParts.map(p => `
+                                    <tr class="border-b border-gray-100 last:border-b-0">
+                                        <td class="p-1.5 font-mono text-primary-600">${p.number}</td>
+                                        <td class="p-1.5">${p.name}</td>
+                                        <td class="p-1.5 text-gray-500">Rev ${p.revision}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-3 border-t border-gray-200">
-            <div class="lg:col-span-1 border-r border-gray-200 p-4">
-                <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Supplier Details</h3>
-                ${Object.entries(data.supplierDetails).map(([k, v]) => InfoItem(k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), v)).join('')}
-            </div>
-            <div class="lg:col-span-2 p-4">
-                <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Related Part Numbers</h3>
-                <div class="max-h-48 overflow-y-auto">
-                    <table class="w-full text-sm">
-                        <tbody>
-                            ${data.relatedParts.map(p => `
-                                <tr class="border-b border-gray-100 last:border-b-0">
-                                    <td class="p-1.5 font-mono text-primary-600">${p.number}</td>
-                                    <td class="p-1.5">${p.name}</td>
-                                    <td class="p-1.5 text-gray-500">Rev ${p.revision}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-3 border-t border-gray-200">
-            <div class="lg:col-span-2 p-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 border-t border-gray-200 mt-4 pt-4">
+            <div class="lg:col-span-2">
                 <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Additional Details</h3>
                 <div class="grid grid-cols-2 gap-2">
                     ${data.additionalDetails.map(item => BoolInfoItem(item.label, item.value, item.description)).join('')}
@@ -379,7 +429,6 @@ const AssessmentActions = (data) => {
                 ${BulkActionDropdown('status', 'Change Status', statuses, data.modals.bulkActionsOpen === 'status')}
                 ${BulkActionDropdown('risk', 'Update Risk', riskLevels, data.modals.bulkActionsOpen === 'risk')}
                 <div class="h-6 border-l border-gray-300 mx-1"></div>
-                <button class="px-2 py-1 rounded-md font-semibold text-xs inline-flex items-center gap-1 bg-red-500 text-white hover:bg-red-600">Delete</button>
             </div>
         </div>
     `;
@@ -403,7 +452,7 @@ const BulkActionDropdown = (type, label, options, isOpen, isDate = false) => `
 `;
 
 const AssessmentTab = (data) => {
-    const { riskAssessment, users, riskLevels, statuses } = data;
+    const { riskAssessment, users, riskLevels, statuses, isDocumentAccordionOpen } = data;
     const allIds = riskAssessment.groups.flatMap(g => g.categories.map(c => c.id));
     const allSelected = riskAssessment.selected.length > 0 && riskAssessment.selected.length === allIds.length;
 
@@ -433,7 +482,7 @@ const AssessmentTab = (data) => {
                         <td class="p-2 w-4"><input type="checkbox" data-action="toggle-assessment-group" data-group="${group.name}" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${allSelectedInGroup ? 'checked' : ''}></td>
                         <td colSpan="9" class="p-2 text-gray-800 font-bold flex justify-between items-center">
                             <span>${group.name}</span>
-                            <a href="#" class="text-xs font-medium text-gray-500 hover:text-primary-600">${group.applicable ? "Mark as N/A" : "Mark as Applicable"}</a>
+                            <a href="#" data-action="toggle-group-applicability" data-group="${group.name}" class="text-xs font-medium text-gray-500 hover:text-primary-600">${group.applicable ? "Mark as N/A" : "Mark as Applicable"}</a>
                         </td>
                     </tr>
                     ${group.applicable ? group.categories.map(cat => {
@@ -444,7 +493,7 @@ const AssessmentTab = (data) => {
                             <td class="p-3 w-4"><input type="checkbox" data-action="toggle-assessment-item" data-id="${cat.id}" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${isSelected ? 'checked' : ''}></td>
                             <td class="p-3 font-medium text-gray-900">
                                 <div>${cat.category}</div>
-                                <textarea data-action="update-field" data-id="${cat.id}" data-field="comments" class="w-full text-xs text-gray-500 border-gray-200 rounded-md mt-1 p-1" placeholder="Add a comment...">${cat.comments}</textarea>
+                                <textarea data-action="update-field" data-id="${cat.id}" data-field="comments" class="w-full text-xs text-gray-500 border-gray-200 rounded-md mt-1 p-1 inline-textarea" placeholder="Add a comment...">${cat.comments}</textarea>
                             </td>
                             <td class="p-3" data-field="responsible" data-id="${cat.id}">
                                 ${isEditing && riskAssessment.editing.field === 'responsible' ? 
@@ -482,7 +531,7 @@ const AssessmentTab = (data) => {
                                     `${cat.rating} / ${cat.weightage}`
                                 }
                             </td>
-                            <td class="p-3">${AttachmentsCell(cat.attachments)}</td>
+                            <td class="p-3">${AttachmentsCell(cat.attachments, cat.id, data.isDocumentAccordionOpen)}</td>
                             <td class="p-3">${ActionItemsCell(cat.actionItems)}</td>
                             <td class="p-3">${HistoryCell(cat.history)}</td>
                         </tr>
@@ -528,19 +577,46 @@ const ActionItemsTab = (data) => `
     </div>
 `;
 
-const AttachmentsCell = (attachments) => `
-    <div class="relative group w-24">
-        <div class="flex items-center justify-center gap-1 cursor-pointer text-gray-500 border-2 border-dashed border-gray-300 rounded-md p-2 text-center hover:border-primary-500 hover:text-primary-600">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-2.4-2.4-4.2-4.8-4.8-.4-.1-.8-.2-1.2-.2s-.8.1-1.2.2c-2.4.6-4.2 2.4-4.8 4.8-.3 1.4 0 2.7.7 3.9l-1.9 1.9c-1.2 1.2-1.2 3.1 0 4.2.6.6 1.4.9 2.1.9s1.5-.3 2.1-.9L12 19.5l1.9 1.9c.6.6 1.4.9 2.1.9s1.5-.3 2.1-.9c1.2-1.2 1.2-3.1 0-4.2l-1.9-1.9z"></path><path d="M12 11v4"></path></svg>
-            <span class="font-medium text-xs">${attachments.length}</span>
+const AttachmentsCell = (attachments, categoryId, isDocumentAccordionOpen) => {
+    const documentCount = attachments.length;
+
+    return `
+    <div class="w-60">
+        <div class="flex items-center justify-center gap-1 cursor-pointer text-gray-500 border-2 border-dashed border-gray-300 rounded-md p-2 text-center hover:border-primary-500 hover:text-primary-600 w-full">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-2.4-2.4-4.2-4.8-4.8-.4-.1-.8-.2-1.2-.2s-.8.1-1.2.2c-2.4.6-4.2 2.4-4.8 4.8-.3 1.4 0 2.7.7 3.9l-1.9 1.9c-1.2 1.2-1.2 3.1 0 4.2.6.6 1.4.9 .1.9s1.5-.3 2.1-.9L12 19.5l1.9 1.9c.6.6 1.4.9 2.1.9s1.5-.3 2.1-.9c1.2-1.2 1.2-3.1 0-4.2l-1.9-1.9z"></path><path d="M12 11v4"></path></svg>
+            <span class="font-medium text-xs">${documentCount} document${documentCount !== 1 ? 's' : ''} uploaded</span>
         </div>
-        ${attachments.length > 0 ? `
-        <div class="absolute z-30 bottom-full mb-2 w-60 bg-white border rounded-md shadow-lg p-2 hidden group-hover:block">
-            <ul class="space-y-1">${attachments.map(att => `<li class="flex justify-between items-center text-sm p-1 hover:bg-gray-100 rounded-md"><a href="#" class="truncate text-gray-700">${att.name}</a></li>`).join('')}</ul>
-        </div>
+        ${documentCount > 0 ? `
+            <div class="mt-2">
+                <button data-action="toggle-document-accordion" class="w-full text-left text-xs font-medium text-gray-500 hover:text-primary-600">
+                    ${isDocumentAccordionOpen ? 'Hide' : 'View'} Documents
+                </button>
+                ${isDocumentAccordionOpen ? `
+                    <div class="mt-2 border-t border-gray-200 pt-2">
+                        <table class="w-full text-sm">
+                            <tbody>
+                                ${attachments.map(att => `
+                                    <tr class="border-b border-gray-100 last:border-b-0">
+                                        <td class="p-1.5 truncate text-gray-700">${att.name}</td>
+                                        <td class="p-1.5 text-right">
+                                            <button class="text-primary-600 hover:underline text-xs">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                            </button>
+                                            <button class="text-red-600 hover:underline text-xs ml-2">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : ''}
+            </div>
         ` : ''}
     </div>
 `;
+};
 
 const ActionItemsCell = (count) => `
     <a href="#" class="flex items-center justify-center gap-1 text-gray-500 hover:text-primary-600">
@@ -555,49 +631,52 @@ const HistoryCell = (history) => `
     </button>
 `;
 
-const AuthorizationCard = (data) => `
-    <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
-        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <h2 class="text-lg font-semibold text-gray-800">Authorization</h2>
-            </div>
-            <div class="flex items-center gap-2">
-                <label class="text-sm font-medium text-gray-600">Template:</label>
-                <select class="text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50">
-                    ${Object.keys(data.authorization.templates).map(t => `<option ${t === data.authorization.template ? 'selected' : ''}>${t}</option>`).join('')}
-                </select>
-            </div>
+const AuthorizationPanel = (data) => `
+    <div class="p-2">
+        <div class="flex items-center gap-2 mb-2">
+            <label class="text-sm font-medium text-gray-600">Template:</label>
+            <select class="text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50">
+                ${Object.keys(data.authorization.templates).map(t => `<option ${t === data.authorization.template ? 'selected' : ''}>${t}</option>`).join('')}
+            </select>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="text-left text-gray-500">
-                        <th class="p-2">Level</th>
-                        <th class="p-2">Role</th>
-                        <th class="p-2">Assigned User</th>
-                        <th class="p-2">Status</th>
-                        <th class="p-2">Signature</th>
-                        <th class="p-2">Date</th>
-                        <th class="p-2">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${data.authorization.roles.map(r => `
-                        <tr class="border-t border-gray-200">
-                            <td class="p-2">${r.level}</td>
-                            <td class="p-2 font-medium">${r.role}</td>
-                            <td class="p-2 w-1/3">${r.user}</td>
-                            <td class="p-2">${StatusBadge(r.status)}</td>
-                            <td class="p-2 font-mono text-sm">${r.signature || '-'}</td>
-                            <td class="p-2 text-gray-500">${r.date}</td>
-                            <td class="p-2 text-right">
-                                ${r.user === data.loggedInUser && r.status === 'Pending' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Sign</button>` : ''}
-                                ${r.user === data.loggedInUser && r.status === 'Signed' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400">Revoke</button>` : ''}
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
+        <div class="space-y-2">
+            ${data.authorization.roles.map(r => `
+                <div class="border rounded-lg p-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs text-gray-500">Level</label>
+                            <p class="font-medium">${r.level}</p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Role</label>
+                            <p class="font-medium">${r.role}</p>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-gray-500">Assigned User</label>
+                            <select data-action="assign-user" data-role="${r.role}" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
+                                <option value="">Select User</option>
+                                ${data.users.map(u => `<option value="${u}" ${u === r.user ? 'selected' : ''}>${u}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Status</label>
+                            <p>${StatusBadge(r.status)}</p>
+                        </div>
+                        <div>
+.                            <label class="text-xs text-gray-500">Signature</label>
+                            <p class="font-mono text-sm">${r.signature || '-'}</p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Date</label>
+                            <p class="text-gray-500">${r.date}</p>
+                        </div>
+                        <div class="text-right self-end">
+                            ${r.user === data.loggedInUser && r.status === 'Pending' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Sign</button>` : ''}
+                            ${r.user === data.loggedInUser && r.status === 'Signed' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400">Revoke</button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
         </div>
     </div>
 `;
@@ -626,7 +705,7 @@ const Avatar = (name) => {
 const SlidingPanel = (panel, title, content, isOpen) => `
     <div data-panel="${panel}" class="fixed inset-0 z-40 ${isOpen ? '' : 'hidden'}">
         <div data-action="close-panel" class="absolute inset-0 bg-gray-900/30 panel-overlay"></div>
-        <div class="panel absolute top-0 left-0 h-full bg-white w-full max-w-md shadow-xl transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}">
+        <div class="panel absolute top-0 right-0 h-full bg-white w-full max-w-2xl shadow-xl transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}">
             <div class="flex flex-col h-full">
                 <div class="flex justify-between items-center p-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-800">${title}</h2>
@@ -666,6 +745,21 @@ const ConversationCard = (conversation) => `
 `;
 
 const StatusHistoryCard = (history) => `
+    <div class="p-4">
+        <ul class="space-y-3">
+            ${history.map(h => `
+                <li class="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <div>
+                        <p class="font-medium text-gray-800">${h.status}</p>
+                        <p class="text-sm text-gray-500">${h.user} on ${h.date}</p>
+                    </div>
+                </li>
+            `).join('')}
+        </ul>
+    </div>
+`;
+tatusHistoryCard = (history) => `
     <div class="p-4">
         <ul class="space-y-3">
             ${history.map(h => `
