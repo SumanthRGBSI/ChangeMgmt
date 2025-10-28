@@ -4,8 +4,7 @@
   "description": "",
   "main": "script.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build:css": "tailwindcss -i src/input.css -o style.css"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -16,11 +15,7 @@
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/SumanthRGBSI/ChangeMgmt/issues"
+    "url": "https'//github.com/SumanthRGBSI/ChangeMgmt/issues"
   },
-  "homepage": "https://github.com/SumanthRGBSI/ChangeMgmt#readme",
-  "devDependencies": {
-    "@tailwindcss/cli": "^4.1.16",
-    "tailwindcss": "^4.1.16"
-  }
+  "homepage": "https://github.com/SumanthRGBSI/ChangeMgmt#readme"
 }
