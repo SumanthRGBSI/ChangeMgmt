@@ -523,6 +523,7 @@ const PageHeader = (data) => {
         </div>
     </div>
 `;
+};
 
 const DetailsCard = (data) => `
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -810,7 +811,8 @@ const AssessmentTab = (data) => {
             </tbody>
         </table>
     </div>
-`;}
+`;
+};
 
 const ActionItemsTab = (data) => `
     <div class="p-4">
@@ -890,7 +892,7 @@ const UpdateRiskPanel = (data) => {
         </div>
     </div>
 `;
-}
+};
 
 const ActionItemPanel = (data) => `
     <div class="p-4 space-y-4">
@@ -967,7 +969,7 @@ const AttachmentsPanel = (data) => {
         </div>
     </div>
 `;
-}
+};
 
 const AuthorizationTab = (data) => {
     const { authorization, loggedInUser } = data;
