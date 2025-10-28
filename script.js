@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const field = e.target.dataset.field;
             let value = e.target.value;
 
-            if (e.target.type === 'number') {
+            if (e.target.type === 'number' || e.target.dataset.field === 'risk') {
                 value = parseInt(value, 10);
             }
 
@@ -738,7 +738,7 @@ const AssessmentTab = (data) => {
                     const groupRow = `
                     <tr class="bg-gray-100 hover:bg-gray-200 transition-colors">
                         <td class="p-2 w-4"><input type="checkbox" data-action="toggle-assessment-group" data-group="${group.name}" class="h-4 w-4 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500" ${allSelectedInGroup ? 'checked' : ''}></td>
-                        <td colSpan="6" class="p-2 text-gray-800 font-bold flex justify-between items-center">
+                        <td colSpan="7" class="p-2 text-gray-800 font-bold flex justify-between items-center">
                             <span>${group.name}</span>
                             <button data-action="toggle-group-applicability" data-group="${group.name}" class="text-xs font-semibold px-2 py-1 rounded-md ${group.applicable ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-green-100 text-green-800 hover:bg-green-200'}">
                                 ${group.applicable ? "Mark as N/A" : "Mark as Applicable"}
@@ -749,7 +749,7 @@ const AssessmentTab = (data) => {
                     const categoryRows = group.categories.map((cat) => {
                         const isSelected = riskAssessment.selected.includes(cat.id);
                         const isEditing = riskAssessment.editing && riskAssessment.editing.categoryId === cat.id;
-                        const riskLevel = riskLevels.find(r => r.value === cat.risk);
+                        const riskLevel = riskLevels.find(r => r.value == cat.risk);
                         const rowClass = isSelected ? 'bg-primary-50' : (riskLevel ? riskLevelConfig[riskLevel.name] : '');
                         const disabledClass = !group.applicable ? 'opacity-50 pointer-events-none' : '';
 
@@ -892,7 +892,7 @@ const UpdateRiskPanel = (data) => {
         </div>
     </div>
 `;
-};
+}
 
 const ActionItemPanel = (data) => `
     <div class="p-4 space-y-4">
