@@ -3,12 +3,17 @@ const state = {
     crName: "Update Main Housing Assembly - V2",
     overallStatus: "In Progress",
     users: ["Alex Chen", "Sarah Lee", "John Smith", "Jane Doe", "Mike Brown", "Director Ops", "QA Lead"],
-    riskLevels: ["Critical", "High", "Medium", "Low"],
+    riskLevels: [
+        { name: "Low", value: 0 },
+        { name: "Medium", value: 1 },
+        { name: "High", value: 2 },
+        { name: "Critical", value: 3 }
+    ],
     statuses: ["In Progress", "Completed", "Pending", "Not Started"],
     unreadConversations: 2,
     statusHistory: [
-        { status: "In Progress", date: "2025-10-22", user: "Jane Doe" },
-        { status: "Initiated", date: "2025-10-20", user: "Alex Chen" }
+        { status: "In Progress", date: "2025-10-22", user: "Jane Doe", history: [] },
+        { status: "Initiated", date: "2025-10-20", user: "Alex Chen", history: [] }
     ],
     details: {
         isExpanded: false,
@@ -16,8 +21,33 @@ const state = {
         isAdditionalDetailsExpanded: false,
         collapsed: { supplierName: "ACME Corp Manufacturing", supplierCode: "ACM-001", partName: "Main Housing Assembly", partNumber: "PN-456-V1", coordinator: "Jane Doe", supplierCoordinator: "John Smith" },
         basicInfo: {
-            left: { crNumber: "CR-2025-00123", supplierChangeNumber: "SCN-98765", supplierPartNumber: "PN-456-V1", partName: "Main Housing Assembly", partRevision: "V1", customer: "Global Motors Inc.", coordinator: "Jane Doe", buyer: "Sarah Lee", creationDate: "2025-10-20", categoryType: "Product", changeReason: "Quality Improvement", proposedChange: "This change involves re-tooling the main injection mold to improve material flow and reduce defects.", comments: "Initial review complete. Awaiting risk assessment from engineering." },
-            right: { crName: "Update Main Housing Assembly - V2", program: "Model G - Drivetrain", eNumber: "E-102938", partClassification: "Major Component", initiator: "Alex Chen", secondaryCoordinator: "Mike Brown", changeCategory: "Tooling", targetImplementationDate: "2025-12-01", materialStatus: "Production", links: [{ name: "Engineering Specs", url: "#" }, { name: "CAD Files", url: "#" }] } 
+            left: {
+                crNumber: "CR-2025-00123",
+                crName: "Update Main Housing Assembly - V2",
+                partName: "Main Housing Assembly",
+                partNumber: "PN-456-V1",
+                partRevision: "V1",
+                customer: "Global Motors Inc.",
+                coordinator: "Jane Doe",
+                creationDate: "2025-10-20",
+                changeReason: "Quality Improvement",
+                proposedChange: "This change involves re-tooling the main injection mold to improve material flow and reduce defects."
+            },
+            right: {
+                program: "Model G - Drivetrain",
+                eNumber: "E-102938",
+                supplierChangeNumber: "SCN-98765",
+                partClassification: "Major Component",
+                initiator: "Alex Chen",
+                secondaryCoordinator: "Mike Brown",
+                buyer: "Sarah Lee",
+                changeCategory: "Tooling",
+                targetImplementationDate: "2025-12-01",
+                materialStatus: "Production",
+                categoryType: "Product",
+                links: [{ name: "Engineering Specs", url: "#" }, { name: "CAD Files", url: "#" }],
+                comments: "Initial review complete. Awaiting risk assessment from engineering."
+            }
         },
         supplierDetails: { supplier: "ACME Corp Manufacturing (ACM-001)", supplierCoordinator: "John Smith", supplierLocation: "Guadalajara, Mexico", supplierPlant: "ACME Plant #4", supplierCoordinatorEmail: "john.smith@acme.com" },
         additionalDetails: [
@@ -51,16 +81,22 @@ const state = {
         editing: null, // { categoryId: null, field: null }
         expandedAttachments: [],
         groups: [
-            { name: "Design & Technical Risk", applicable: true, categories: [
-                { id: 1, category: "Feasibility", responsible: "Alex Chen", dueDate: "2025-11-15", risk: "Medium", status: "In Progress", rating: 4, weightage: 40, comments: "Tooling tests pending.", attachments: [{id: 1, name: 'spec-v1.pdf'}, {id: 2, name: 'test-plan.docx'}], history: [], actionItems: 2 },
-                { id: 2, category: "Material Spec", responsible: "Alex Chen", dueDate: "2025-11-18", risk: "Low", status: "Pending", rating: 2, weightage: 20, comments: "Material spec needs to be confirmed with the supplier and updated in the system.", attachments: [], history: [], actionItems: 0 }
-            ]},
-            { name: "Financial & Commercial Risk", applicable: true, categories: [
-                { id: 3, category: "Cost Analysis", responsible: "Sarah Lee", dueDate: "2025-11-10", risk: "Low", status: "Completed", rating: 2, weightage: 30, comments: "Cost increase within 5% tolerance.", attachments: [{id: 3, name: 'cost-analysis.xlsx'}], history: [], actionItems: 0 }
-            ]},
-            { name: "Logistics", applicable: false, categories: [
-                { id: 4, category: "Supply Chain", responsible: "John Smith", dueDate: "2025-11-20", risk: "High", status: "Pending", rating: 0, weightage: 10, comments: "", attachments: [], history: [], actionItems: 0 }
-            ]}] 
+            {
+                name: "Design & Technical Risk", applicable: true, categories: [
+                    { id: 1, category: "Feasibility", responsible: "Alex Chen", dueDate: "2025-11-15", risk: 1, status: "In Progress", rating: 4, weightage: 40, comments: "Tooling tests pending.", attachments: [{ id: 1, name: 'spec-v1.pdf', source: 'Update Risk', timestamp: '2025-10-24 10:30', user: 'Alex Chen' }, { id: 2, name: 'test-plan.docx', source: 'Action Item', timestamp: '2025-10-25 14:00', user: 'Jane Doe' }], history: [], actionItems: 2 },
+                    { id: 2, category: "Material Spec", responsible: "Alex Chen", dueDate: "2025-11-18", risk: 0, status: "Pending", rating: 2, weightage: 20, comments: "Material spec needs to be confirmed with the supplier and updated in the system.", attachments: [], history: [], actionItems: 0 }
+                ]
+            },
+            {
+                name: "Financial & Commercial Risk", applicable: true, categories: [
+                    { id: 3, category: "Cost Analysis", responsible: "Sarah Lee", dueDate: "2025-11-10", risk: 0, status: "Completed", rating: 2, weightage: 30, comments: "Cost increase within 5% tolerance.", attachments: [{ id: 3, name: 'cost-analysis.xlsx', source: 'Update Risk', timestamp: '2025-10-26 09:00', user: 'Sarah Lee' }], history: [], actionItems: 0 }
+                ]
+            },
+            {
+                name: "Logistics", applicable: false, categories: [
+                    { id: 4, category: "Supply Chain", responsible: "John Smith", dueDate: "2025-11-20", risk: 2, status: "Pending", rating: 0, weightage: 10, comments: "", attachments: [], history: [], actionItems: 0 }
+                ]
+            }]
     },
     actionItems: [
         { id: 1, assessmentCategory: "Cost Analysis", name: "Finalize budget report", responsible: "Sarah Lee", dueDate: "2025-11-12", status: "Completed" },
@@ -114,6 +150,21 @@ const state = {
         type: 'success' // success, error, info
     },
     loading: false
+};
+
+const recordHistory = (categoryId, field, oldValue, newValue) => {
+    const category = state.riskAssessment.groups.flatMap(g => g.categories).find(c => c.id === categoryId);
+    if (category) {
+        const user = state.loggedInUser;
+        const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        category.history.push({
+            user,
+            timestamp,
+            field,
+            oldValue,
+            newValue
+        });
+    }
 };
 
 const showToast = (message, type = 'success') => {
@@ -170,10 +221,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (panel) state.panels[panel] = false;
         }
         if (e.target.closest('[data-action="open-panel"]')) {
-            const panel = e.target.closest('[data-action="open-panel"]').dataset.panel;
+            const button = e.target.closest('[data-action="open-panel"]');
+            const panel = button.dataset.panel;
             if (panel) {
-                if (panel === 'updateRisk') {
-                    const id = parseInt(e.target.closest('tr').querySelector('[data-id]').dataset.id, 10);
+                const id = parseInt(button.dataset.id || e.target.closest('tr')?.querySelector('[data-id]')?.dataset.id, 10);
+                if (id) {
                     state.currentRiskItem = state.riskAssessment.groups.flatMap(g => g.categories).find(c => c.id === id);
                 }
                 state.panels[panel] = true;
@@ -181,13 +233,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (e.target.closest('[data-action="save-risk"]')) {
             const id = state.currentRiskItem.id;
-            const riskLevel = document.getElementById('risk-level-select').value;
+            const riskLevel = parseInt(document.getElementById('risk-level-select').value, 10);
             const description = document.getElementById('risk-description-textarea').value;
 
             const category = state.riskAssessment.groups.flatMap(g => g.categories).find(c => c.id === id);
-            if(category) {
-                category.risk = riskLevel;
-                category.comments = description;
+            if (category) {
+                if (category.risk !== riskLevel) {
+                    recordHistory(id, 'risk', category.risk, riskLevel);
+                    category.risk = riskLevel;
+                }
+                if (category.comments !== description) {
+                    recordHistory(id, 'comments', category.comments, description);
+                    category.comments = description;
+                }
             }
 
             state.panels.updateRisk = false;
@@ -281,7 +339,11 @@ document.addEventListener('DOMContentLoaded', () => {
             state.riskAssessment.selected.forEach(id => {
                 const category = state.riskAssessment.groups.flatMap(g => g.categories).find(c => c.id === id);
                 if (category) {
-                    category[field] = value;
+                    const oldValue = category[field];
+                    if (oldValue !== value) {
+                        recordHistory(id, field, oldValue, value);
+                        category[field] = value;
+                    }
                 }
             });
             state.modals.bulkActionsOpen = null;
@@ -319,11 +381,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 .find(c => c.id === id);
 
             if (category) {
-                if (field === 'rating-weightage') {
-                    const [rating, weightage] = value.split('/').map(s => parseInt(s.trim(), 10));
-                    category.rating = rating;
-                    category.weightage = weightage;
-                } else {
+                const oldValue = category[field];
+                if (oldValue !== value) {
+                    recordHistory(id, field, oldValue, value);
                     category[field] = value;
                 }
             }
@@ -385,7 +445,7 @@ const App = (data) => `
             </div>
         </main>
         ${SlidingPanel('conversation', "Conversation", ConversationCard(data.conversation), data.panels.conversation)}
-        ${SlidingPanel('history', "Status History", StatusHistoryCard(data.statusHistory), data.panels.history)}
+        ${SlidingPanel('history', "Status History", StatusHistoryCard(data), data.panels.history)}
         ${SlidingPanel('updateRisk', "Update Risk", UpdateRiskPanel(data), data.panels.updateRisk)}
         ${SlidingPanel('actionItem', "Add Action Item", ActionItemPanel(data), data.panels.actionItem)}
         ${SlidingPanel('attachments', "Manage Attachments", AttachmentsPanel(data), data.panels.attachments)}
@@ -416,7 +476,27 @@ const RiskMeter = (riskAssessment) => {
     `;
 };
 
-const PageHeader = (data) => `
+const getNextRolesToSign = (roles) => {
+    const minUnsignedLevel = Math.min(
+        ...roles.filter(r => r.status !== 'Signed' && r.status !== 'Rejected').map(r => r.level)
+    );
+    if (minUnsignedLevel === Infinity) {
+        return [];
+    }
+    return roles.filter(r => r.level === minUnsignedLevel && (r.status === 'Pending' || r.status === 'Not Started'));
+};
+
+const isUserAuthorizedToApprove = (data) => {
+    const hasRejection = data.authorization.roles.some(r => r.status === 'Rejected');
+    if (hasRejection) return false;
+
+    const nextRoles = getNextRolesToSign(data.authorization.roles);
+    return nextRoles.some(r => r.user === data.loggedInUser);
+};
+
+const PageHeader = (data) => {
+    const canApprove = isUserAuthorizedToApprove(data);
+    return `
     <div class="p-4 bg-gray-50/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-30">
         <div class="max-w-full mx-auto flex justify-between items-center">
             <div>
@@ -428,7 +508,7 @@ const PageHeader = (data) => `
                     <span class="text-sm font-medium text-gray-600">Overall Status:</span>
                     ${StatusBadge(data.overallStatus)}
                 </div>
-                <button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Approve</button>
+                <button ${!canApprove ? 'disabled' : ''} class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Approve</button>
                 <div class="h-8 border-l border-gray-300 mx-2"></div>
                 <div class="relative">
                     <button data-action="toggle-conversation" class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors">
@@ -472,8 +552,7 @@ const ExpandedDetails = (data) => `
     <div class="fade-in border-t border-gray-200 p-4 space-y-4">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div class="lg:col-span-2 space-y-4">
-                ${renderDetailSection('Basic Information', data.basicInfo.left)}
-                ${renderDetailSection(null, data.basicInfo.right)}
+                ${renderTwoColumnDetailSection('Basic Information', data.basicInfo)}
             </div>
             <div class="lg:col-span-1 space-y-4">
                 ${renderDetailSection('Supplier Details', data.supplierDetails)}
@@ -481,6 +560,20 @@ const ExpandedDetails = (data) => `
             </div>
         </div>
         ${renderCollapsibleDetailSection('Additional Details', data.additionalDetails, 'additional-details', data.isAdditionalDetailsExpanded, true)}
+    </div>
+`;
+
+const renderTwoColumnDetailSection = (title, dataObject) => `
+    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+        ${title ? `<h3 class="text-sm font-bold text-gray-700 mb-2">${title}</h3>` : ''}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+            <dl>
+                ${Object.entries(dataObject.left).map(([key, value]) => InfoItem(key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), value)).join('')}
+            </dl>
+            <dl>
+                ${Object.entries(dataObject.right).map(([key, value]) => InfoItem(key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), value)).join('')}
+            </dl>
+        </div>
     </div>
 `;
 
@@ -586,8 +679,6 @@ const AssessmentActions = (data) => {
             <div class="flex items-center gap-2">
                 ${BulkActionDropdown('responsible', 'Assign User', users, data.modals.bulkActionsOpen === 'responsible')}
                 ${BulkActionDropdown('dueDate', 'Set Due Date', [], data.modals.bulkActionsOpen === 'dueDate', true)}
-                ${BulkActionDropdown('status', 'Change Status', statuses, data.modals.bulkActionsOpen === 'status')}
-                ${BulkActionDropdown('risk', 'Update Risk', riskLevels, data.modals.bulkActionsOpen === 'risk')}
                 <div class="h-6 border-l border-gray-300 mx-1"></div>
             </div>
         </div>
@@ -634,7 +725,7 @@ const AssessmentTab = (data) => {
                     <th class="p-3 font-semibold">Due Date</th>
                     <th class="p-3 font-semibold">Available Risks</th>
                     <th class="p-3 font-semibold">Actual Risk</th>
-                    <th class="p-3 font-semibold">Rating/Weightage</th>
+                    <th class="p-3 font-semibold">Weightage</th>
                     <th class="p-3 font-semibold">Actions</th>
                 </tr>
             </thead>
@@ -657,47 +748,46 @@ const AssessmentTab = (data) => {
                     const categoryRows = group.categories.map((cat) => {
                         const isSelected = riskAssessment.selected.includes(cat.id);
                         const isEditing = riskAssessment.editing && riskAssessment.editing.categoryId === cat.id;
-                        const rowClass = isSelected ? 'bg-primary-50' : (riskLevelConfig[cat.risk] || '');
+                        const riskLevel = riskLevels.find(r => r.value === cat.risk);
+                        const rowClass = isSelected ? 'bg-primary-50' : (riskLevel ? riskLevelConfig[riskLevel.name] : '');
                         const disabledClass = !group.applicable ? 'opacity-50 pointer-events-none' : '';
 
                         return `
                         <tr class="hover:bg-gray-50 transition-colors ${rowClass} ${disabledClass}">
                             <td class="p-3 w-4"><input type="checkbox" data-action="toggle-assessment-item" data-id="${cat.id}" class="h-4 w-4 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
-                            <td class="p-3 font-medium text-gray-900">
-                                <div>${cat.category}</div>
-                                <div class="text-xs text-gray-500 mt-1">${cat.comments || 'No comments'}</div>
-                            </td>
+                            <td class="p-3 font-medium text-gray-900">${cat.category}</td>
                             <td class="p-3" data-field="responsible" data-id="${cat.id}">
-                                ${isEditing && riskAssessment.editing.field === 'responsible' ? 
+                                ${isEditing && riskAssessment.editing.field === 'responsible' ?
                                     `<select data-action="update-field" data-id="${cat.id}" data-field="responsible" class="w-full border-gray-300 rounded-md shadow-sm text-sm p-1">
                                         <option value="">Unassigned</option>
                                         ${users.map(u => `<option value="${u}" ${u === cat.responsible ? 'selected' : ''}>${u}</option>`).join('')}
-                                    </select>` : 
+                                    </select>` :
                                     Avatar(cat.responsible)
                                 }
                             </td>
                             <td class="p-3" data-field="dueDate" data-id="${cat.id}">
-                                ${isEditing && riskAssessment.editing.field === 'dueDate' ? 
+                                ${isEditing && riskAssessment.editing.field === 'dueDate' ?
                                     `<input type="date" value="${cat.dueDate}" data-action="update-field" data-id="${cat.id}" data-field="dueDate" class="w-full border-gray-300 rounded-md shadow-sm text-sm p-1">` :
                                     `<span class="text-sm">${cat.dueDate}</span>`
                                 }
                             </td>
                             <td class="p-3 text-xs">
-                                <div class="font-medium text-gray-700">Score: ${cat.rating * 2}/10</div>
-                                <div class="text-gray-500">${cat.comments}</div>
+                                <div class="flex flex-col space-y-1">
+                                    ${riskLevels.map(r => `<div class="flex items-center"><div class="w-3 h-3 rounded-full mr-2 ${riskLevelConfig[r.name]}"></div> ${r.value} - ${r.name}</div>`).join('')}
+                                </div>
                             </td>
                             <td class="p-3" data-field="risk" data-id="${cat.id}">
-                                ${isEditing && riskAssessment.editing.field === 'risk' ? 
+                                ${isEditing && riskAssessment.editing.field === 'risk' ?
                                     `<select data-action="update-field" data-id="${cat.id}" data-field="risk" class="w-full border-gray-300 rounded-md shadow-sm text-sm p-1">
-                                        ${riskLevels.map(r => `<option value="${r}" ${r === cat.risk ? 'selected' : ''}>${r}</option>`).join('')}
-                                    </select>` : 
-                                    RiskBadge(cat.risk)
+                                        ${riskLevels.map(r => `<option value="${r.value}" ${r.value === cat.risk ? 'selected' : ''}>${r.name}</option>`).join('')}
+                                    </select>` :
+                                    RiskBadge(riskLevel)
                                 }
                             </td>
-                            <td class="p-3 text-sm" data-field="rating-weightage" data-id="${cat.id}">
-                                ${isEditing && riskAssessment.editing.field === 'rating-weightage' ?
-                                    `<input type="text" value="${cat.rating} / ${cat.weightage}" data-action="update-field" data-id="${cat.id}" data-field="rating-weightage" class="w-24 border-gray-300 rounded-md shadow-sm text-sm p-1">` :
-                                    `R: ${cat.rating} / W: ${cat.weightage}`
+                            <td class="p-3 text-sm" data-field="weightage" data-id="${cat.id}">
+                                ${isEditing && riskAssessment.editing.field === 'weightage' ?
+                                    `<input type="number" value="${cat.weightage}" data-action="update-field" data-id="${cat.id}" data-field="weightage" class="w-20 border-gray-300 rounded-md shadow-sm text-sm p-1">` :
+                                    `${cat.weightage}`
                                 }
                             </td>
                             <td class="p-3">
@@ -708,7 +798,7 @@ const AssessmentTab = (data) => {
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                                         ${cat.attachments.length > 0 ? `<span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-primary-500 ring-2 ring-white"></span>` : ''}
                                     </button>
-                                    <button class="p-1 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-800" title="History"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg></button>
+                                    <button data-action="open-panel" data-panel="history" data-id="${cat.id}" class="p-1 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-800" title="History"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg></button>
                                 </div>
                             </td>
                         </tr>
@@ -774,7 +864,7 @@ const UpdateRiskPanel = (data) => {
         <div>
             <label class="text-sm font-medium text-gray-700">Risk Level</label>
             <select id="risk-level-select" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
-                ${data.riskLevels.map(r => `<option value="${r}" ${r === item.risk ? 'selected' : ''}>${r}</option>`).join('')}
+                ${data.riskLevels.map(r => `<option value="${r.value}" ${r.value === item.risk ? 'selected' : ''}>${r.name}</option>`).join('')}
             </select>
         </div>
         <div>
@@ -839,19 +929,33 @@ const AttachmentsPanel = (data) => {
 
     return `
     <div class="p-4 space-y-4">
-        <h3 class="text-lg font-semibold">Manage Attachments</h3>
-        <div class="space-y-2">
-            ${attachments.map(att => `
-                <div class="flex items-center justify-between p-2 border rounded-md">
-                    <span class="text-sm">${att.name}</span>
-                    <button class="text-red-500 hover:text-red-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
+        <h3 class="text-lg font-semibold">Manage Attachments for ${data.currentRiskItem ? data.currentRiskItem.category : ''}</h3>
+        <div class="space-y-4">
+            ${attachments.length > 0 ? attachments.map(att => `
+                <div class="flex items-start space-x-4 p-3 bg-gray-50 rounded-lg border">
+                    <div class="flex-shrink-0">
+                        <svg class="w-6 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-sm font-semibold text-gray-800">${att.name}</p>
+                        <p class="text-xs text-gray-500">
+                            Uploaded by ${att.user} on ${att.timestamp} from "${att.source}"
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="p-1.5 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-800" title="View">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                        <button class="p-1.5 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-800" title="Download">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        </button>
+                    </div>
                 </div>
-            `).join('')}
-            ${attachments.length === 0 ? '<p class="text-sm text-gray-500">No attachments found.</p>' : ''}
+            `).join('') : '<p class="text-sm text-gray-500">No attachments found for this item.</p>'}
         </div>
-        <div>
+        <div class="pt-4 border-t">
             <label class="block text-sm font-medium text-gray-700">Upload New File</label>
             <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                 <div class="space-y-1 text-center">
@@ -1086,13 +1190,14 @@ const LoadingSpinner = () => `
 `;
 
 const RiskBadge = (risk) => {
+    if (!risk) return '';
     const config = {
         "Critical": "bg-red-100 text-red-800",
         "High": "bg-orange-100 text-orange-800",
         "Medium": "bg-yellow-100 text-yellow-800",
         "Low": "bg-green-100 text-green-800",
-    }[risk] || "bg-gray-100 text-gray-800";
-    return `<span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium ${config}">${risk}</span>`;
+    }[risk.name] || "bg-gray-100 text-gray-800";
+    return `<span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium ${config}">${risk.value} - ${risk.name}</span>`;
 };
 
 const Avatar = (name) => {
@@ -1142,18 +1247,34 @@ const ConversationCard = (conversation) => `
     </div>
 `;
 
-const StatusHistoryCard = (history) => `
+const StatusHistoryCard = (data) => {
+    const history = data.currentRiskItem ? data.currentRiskItem.history : data.statusHistory;
+    const title = data.currentRiskItem ? `History for ${data.currentRiskItem.category}` : "Overall Status History";
+
+    return `
     <div class="p-4">
-        <ul class="space-y-3">
+        <h3 class="text-lg font-semibold mb-4">${title}</h3>
+        <ul class="space-y-4">
             ${history.map(h => `
-                <li class="flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <div>
-                        <p class="font-medium text-gray-800">${h.status}</p>
-                        <p class="text-sm text-gray-500">${h.user} on ${h.date}</p>
-                    </div>
+                <li class="border-l-2 pl-4">
+                    ${h.field ?
+                        `<div>
+                            <p class="font-medium text-gray-800">Field <span class="font-bold">${h.field}</span> changed</p>
+                            <p class="text-sm text-gray-600">From <span class="font-semibold">${h.oldValue}</span> to <span class="font-semibold">${h.newValue}</span></p>
+                            <p class="text-xs text-gray-400 mt-1">${h.user} at ${h.timestamp}</p>
+                        </div>` :
+                        `<div class="flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <div>
+                                <p class="font-medium text-gray-800">${h.status}</p>
+                                <p class="text-sm text-gray-500">${h.user} on ${h.date}</p>
+                            </div>
+                        </div>`
+                    }
                 </li>
             `).join('')}
+             ${history.length === 0 ? '<p class="text-sm text-gray-500">No history found.</p>' : ''}
         </ul>
     </div>
-`;
+    `;
+};
