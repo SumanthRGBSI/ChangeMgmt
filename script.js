@@ -890,7 +890,7 @@ const UpdateRiskPanel = (data) => {
         </div>
     </div>
 `;
-}
+}}
 
 const ActionItemPanel = (data) => `
     <div class="p-4 space-y-4">
