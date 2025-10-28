@@ -1,21 +1,21 @@
 {
   "name": "app",
   "version": "1.0.0",
-  "description": "",
-  "main": "script.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "author": "",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SumanthRGBSI/ChangeMgmt.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "main": "script.js",
   "bugs": {
     "url": "https'//github.com/SumanthRGBSI/ChangeMgmt/issues"
   },
-  "homepage": "https://github.com/SumanthRGBSI/ChangeMgmt#readme"
+  "description": "",
+  "homepage": "https://github.com/SumanthRGBSI/ChangeMgmt#readme",
+  "keywords": [],
+  "license": "ISC",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "commonjs"
 }
