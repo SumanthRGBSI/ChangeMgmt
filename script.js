@@ -12,6 +12,8 @@ const state = {
     ],
     details: {
         isExpanded: false,
+        isRelatedPartsExpanded: false,
+        isAdditionalDetailsExpanded: false,
         collapsed: { supplierName: "ACME Corp Manufacturing", supplierCode: "ACM-001", partName: "Main Housing Assembly", partNumber: "PN-456-V1", coordinator: "Jane Doe", supplierCoordinator: "John Smith" },
         basicInfo: {
             left: { crNumber: "CR-2025-00123", supplierChangeNumber: "SCN-98765", supplierPartNumber: "PN-456-V1", partName: "Main Housing Assembly", partRevision: "V1", customer: "Global Motors Inc.", coordinator: "Jane Doe", buyer: "Sarah Lee", creationDate: "2025-10-20", categoryType: "Product", changeReason: "Quality Improvement", proposedChange: "This change involves re-tooling the main injection mold to improve material flow and reduce defects.", comments: "Initial review complete. Awaiting risk assessment from engineering." },
@@ -69,7 +71,7 @@ const state = {
         template: "Standard Engineering Change",
         templates: {
             "Standard Engineering Change": [
-                { level: 1, role: "Initiator" }, { level: 2, role: "Coordinator" }, { level: 3, role: "Risk Analyst (Tech)" }, { level: 3, role: "Risk Analyst (Finance)" }, { level: 4, role: "Final Approver" }
+                { level: 1, role: "Initiator" }, { level: 2, role: "Coordinator" }, { level: 3, role: "Risk Analyst (Tech)" }, { level: 3, role: "Risk Analyst (Finance)" }, { level: 4, role: "QA Lead" }, { level: 5, role: "Director Ops" }, { level: 6, role: "Final Approver" }
             ],
             "Fast-Track Minor Change": [
                 { level: 1, role: "Initiator" }, { level: 2, role: "Coordinator" }, { level: 3, role: "QA Lead" }, { level: 4, role: "Final Approver" }
@@ -78,9 +80,11 @@ const state = {
         roles: [
             { level: 1, role: "Initiator", user: "Alex Chen", status: "Signed", signature: "A.C.", date: "2025-10-20", method: "typed" },
             { level: 2, role: "Coordinator", user: "Jane Doe", status: "Signed", signature: "J.D.", date: "2025-10-21", method: "draw" },
-            { level: 3, role: "Risk Analyst (Tech)", user: "", status: "Not Started", signature: "", date: "", method: "" },
-            { level: 3, role: "Risk Analyst (Finance)", user: "", status: "Not Started", signature: "", date: "", method: "" },
-            { level: 4, role: "Final Approver", user: "", status: "Not Started", signature: "", date: "", method: "" },
+            { level: 3, role: "Risk Analyst (Tech)", user: "Alex Chen", status: "Pending", signature: "", date: "", method: "" },
+            { level: 3, role: "Risk Analyst (Finance)", user: "Sarah Lee", status: "Not Started", signature: "", date: "", method: "" },
+            { level: 4, role: "QA Lead", user: "", status: "Not Started", signature: "", date: "", method: "" },
+            { level: 5, role: "Director Ops", user: "Director Ops", status: "Rejected", signature: "D.O.", date: "2025-10-23", method: "typed" },
+            { level: 6, role: "Final Approver", user: "", status: "Not Started", signature: "", date: "", method: "" },
         ],
         searchQuery: '',
         showFindMe: false,
@@ -93,14 +97,32 @@ const state = {
     panels: {
         conversation: false,
         history: false,
+        updateRisk: false,
+        actionItem: false,
+        attachments: false
     },
     modals: {
-        actionItem: false,
         signature: false,
         bulkActionsOpen: null
     },
+    currentRiskItem: null,
     isDocumentAccordionOpen: false,
-    loggedInUser: "Jane Doe"
+    loggedInUser: "Jane Doe",
+    toast: {
+        visible: false,
+        message: '',
+        type: 'success' // success, error, info
+    },
+    loading: false
+};
+
+const showToast = (message, type = 'success') => {
+    state.toast = { visible: true, message, type };
+    render();
+    setTimeout(() => {
+        state.toast.visible = false;
+        render();
+    }, 3000);
 };
 
 const render = () => {
@@ -131,6 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('[data-action="toggle-details"]')) {
             state.details.isExpanded = !state.details.isExpanded;
         }
+        if (e.target.closest('[data-action="toggle-related-parts"]')) {
+            state.details.isRelatedPartsExpanded = !state.details.isRelatedPartsExpanded;
+        }
+        if (e.target.closest('[data-action="toggle-additional-details"]')) {
+            state.details.isAdditionalDetailsExpanded = !state.details.isAdditionalDetailsExpanded;
+        }
         if (e.target.closest('[data-action="toggle-conversation"]')) {
             state.panels.conversation = !state.panels.conversation;
         }
@@ -139,7 +167,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (e.target.closest('[data-action="close-panel"]')) {
             const panel = e.target.closest('[data-panel]').dataset.panel;
-            state.panels[panel] = false;
+            if (panel) state.panels[panel] = false;
+        }
+        if (e.target.closest('[data-action="open-panel"]')) {
+            const panel = e.target.closest('[data-action="open-panel"]').dataset.panel;
+            if (panel) {
+                if (panel === 'updateRisk') {
+                    const id = parseInt(e.target.closest('tr').querySelector('[data-id]').dataset.id, 10);
+                    state.currentRiskItem = state.riskAssessment.groups.flatMap(g => g.categories).find(c => c.id === id);
+                }
+                state.panels[panel] = true;
+            }
+        }
+        if (e.target.closest('[data-action="save-risk"]')) {
+            const id = state.currentRiskItem.id;
+            const riskLevel = document.getElementById('risk-level-select').value;
+            const description = document.getElementById('risk-description-textarea').value;
+
+            const category = state.riskAssessment.groups.flatMap(g => g.categories).find(c => c.id === id);
+            if(category) {
+                category.risk = riskLevel;
+                category.comments = description;
+            }
+
+            state.panels.updateRisk = false;
+            showToast('Risk updated successfully!');
+        }
+        if (e.target.closest('[data-action="add-action-item"]')) {
+            const name = document.getElementById('action-item-name').value;
+            const description = document.getElementById('action-item-description').value;
+            const responsible = document.getElementById('action-item-responsible').value;
+            const dueDate = document.getElementById('action-item-due-date').value;
+
+            const newActionItem = {
+                id: state.actionItems.length + 1,
+                assessmentCategory: state.currentRiskItem ? state.currentRiskItem.category : "General",
+                name,
+                responsible,
+                dueDate,
+                status: "Pending"
+            };
+
+            state.actionItems.push(newActionItem);
+            state.panels.actionItem = false;
+            showToast('Action item created successfully!');
         }
         if (e.target.closest('[data-action="toggle-document-accordion"]')) {
             state.isDocumentAccordionOpen = !state.isDocumentAccordionOpen;
@@ -214,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             state.modals.bulkActionsOpen = null;
+            showToast(`${state.riskAssessment.selected.length} items updated successfully!`);
         }
         if (e.target.closest('[data-action="set-auth-filter"]')) {
             state.authorization.activeFilter = e.target.closest('[data-action="set-auth-filter"]').dataset.filter;
@@ -277,11 +349,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }, true);
 });
 
+const calculateRiskScore = (riskAssessment) => {
+    const applicableCategories = riskAssessment.groups
+        .filter(g => g.applicable)
+        .flatMap(g => g.categories);
+
+    if (applicableCategories.length === 0) {
+        return { score: 0 };
+    }
+
+    const totalWeight = applicableCategories.reduce((sum, cat) => sum + cat.weightage, 0);
+    const weightedSum = applicableCategories.reduce((sum, cat) => sum + (cat.rating * cat.weightage), 0);
+
+    if (totalWeight === 0) {
+        return { score: 0 };
+    }
+
+    // Assuming max rating is 5 to normalize the score to 0-100
+    const maxRating = 5;
+    const score = (weightedSum / (totalWeight * maxRating)) * 100;
+
+    return { score: Math.round(score) };
+};
+
 const App = (data) => `
     <div class="flex flex-col h-screen">
-        ${RiskMeter()}
+        ${Toast(data.toast)}
+        ${data.loading ? LoadingSpinner() : ''}
+        ${RiskMeter(data.riskAssessment)}
         ${PageHeader(data)}
-        <main class="flex-grow overflow-y-auto p-4">
+        <main class="flex-grow overflow-y-auto p-4 pl-32">
             <div class="max-w-full mx-auto space-y-6">
                 ${DetailsCard(data.details)}
                 ${RiskAndActionsCard(data)}
@@ -289,34 +386,35 @@ const App = (data) => `
         </main>
         ${SlidingPanel('conversation', "Conversation", ConversationCard(data.conversation), data.panels.conversation)}
         ${SlidingPanel('history', "Status History", StatusHistoryCard(data.statusHistory), data.panels.history)}
+        ${SlidingPanel('updateRisk', "Update Risk", UpdateRiskPanel(data), data.panels.updateRisk)}
+        ${SlidingPanel('actionItem', "Add Action Item", ActionItemPanel(data), data.panels.actionItem)}
+        ${SlidingPanel('attachments', "Manage Attachments", AttachmentsPanel(data), data.panels.attachments)}
     </div>
 `;
 
-const RiskMeter = () => `
-    <div class="fixed left-4 top-1/2 -translate-y-1/2 z-50">
-        <div class="bg-white rounded-full shadow-lg p-2">
-            <div class="w-16 h-16 flex items-center justify-center">
-                <svg class="w-full h-full" viewBox="0 0 36 36">
-                    <path class="text-gray-200"
-                        d="M18 2.0845
-                          a 15.9155 15.9155 0 0 1 0 31.831
-                          a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke-width="4" />
-                    <path class="text-red-500"
-                        stroke-dasharray="75, 100"
-                        d="M18 2.0845
-                          a 15.9155 15.9155 0 0 1 0 31.831
-                          a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke-width="4"
-                        stroke-linecap="round" />
-                    <text x="18" y="22" text-anchor="middle" class="text-lg font-bold fill-current text-red-500">75</text>
-                </svg>
-            </div>
+const RiskMeter = (riskAssessment) => {
+    const { score } = calculateRiskScore(riskAssessment);
+
+    const getColorForScore = (s) => {
+        if (s <= 40) return '#10B981'; // green
+        if (s <= 70) return '#F59E0B'; // amber
+        return '#EF4444'; // red
+    };
+
+    const meterColor = getColorForScore(score);
+
+    return `
+    <div class="fixed left-4 top-1/2 -translate-y-1/2 z-50 bg-white p-3 rounded-lg shadow-lg flex flex-col items-center space-y-2 w-24">
+        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Avg. Risk</div>
+        <div class="w-6 h-40 bg-gray-200 rounded-full overflow-hidden relative border-2 border-gray-300">
+            <div id="risk-mercury" class="absolute bottom-0 left-0 right-0 transition-all duration-500" style="height: ${score}%; background-image: linear-gradient(to top, #10B981, #F59E0B 80%, #EF4444);"></div>
+        </div>
+        <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold border-4" style="border-color: ${meterColor}; color: ${meterColor};">
+            ${score}
         </div>
     </div>
-`;
+    `;
+};
 
 const PageHeader = (data) => `
     <div class="p-4 bg-gray-50/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-30">
@@ -371,58 +469,82 @@ const CollapsedDetails = (data) => `
 `;
 
 const ExpandedDetails = (data) => `
-    <div class="fade-in border-t border-gray-200 p-4">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6">
-                <div>
-                    <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Basic Information</h3>
-                    ${Object.entries(data.basicInfo.left).map(([k, v]) => InfoItem(k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), v)).join('')}
-                </div>
-                <div>
-                    <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2 invisible">Basic Information</h3>
-                    ${Object.entries(data.basicInfo.right).map(([k, v]) => InfoItem(k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), Array.isArray(v) ? v.map(l => l.name).join(', ') : v)).join('')}
-                </div>
+    <div class="fade-in border-t border-gray-200 p-4 space-y-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2 space-y-4">
+                ${renderDetailSection('Basic Information', data.basicInfo.left)}
+                ${renderDetailSection(null, data.basicInfo.right)}
             </div>
-            <div class="lg:col-span-1">
-                <div>
-                    <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Supplier Details</h3>
-                    ${Object.entries(data.supplierDetails).map(([k, v]) => InfoItem(k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), v)).join('')}
-                </div>
-                <div class="mt-4">
-                    <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Related Part Number</h3>
-                    <div class="max-h-48 overflow-y-auto border rounded-md">
-                        <table class="w-full text-sm">
-                            <tbody>
-                                ${data.relatedParts.map(p => `
-                                    <tr class="border-b border-gray-100 last:border-b-0">
-                                        <td class="p-1.5 font-mono text-primary-600">${p.number}</td>
-                                        <td class="p-1.5">${p.name}</td>
-                                        <td class="p-1.5 text-gray-500">Rev ${p.revision}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="lg:col-span-1 space-y-4">
+                ${renderDetailSection('Supplier Details', data.supplierDetails)}
+                ${renderCollapsibleDetailSection('Related Part Number', data.relatedParts, 'related-parts', data.isRelatedPartsExpanded)}
             </div>
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-3 border-t border-gray-200 mt-4 pt-4">
-            <div class="lg:col-span-2">
-                <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Additional Details</h3>
-                <div class="grid grid-cols-2 gap-2">
-                    ${data.additionalDetails.map(item => BoolInfoItem(item.label, item.value, item.description)).join('')}
-                </div>
-            </div>
-        </div>
+        ${renderCollapsibleDetailSection('Additional Details', data.additionalDetails, 'additional-details', data.isAdditionalDetailsExpanded, true)}
     </div>
 `;
 
-const InfoItem = (label, value) => `
-    <div class="mb-1">
-        <p class="text-xs text-gray-500">${label}</p>
-        <p class="text-sm font-medium text-gray-800 break-words">${value || '-'}</p>
+const renderDetailSection = (title, dataObject) => `
+    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+        ${title ? `<h3 class="text-sm font-bold text-gray-700 mb-2">${title}</h3>` : ''}
+        <dl>
+            ${Object.entries(dataObject).map(([key, value]) => InfoItem(key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()), value)).join('')}
+        </dl>
     </div>
 `;
+
+const renderCollapsibleDetailSection = (title, data, action, isExpanded, isBooleanInfo = false) => `
+    <div>
+        <button data-action="toggle-${action}" class="w-full text-left font-semibold text-gray-800 flex justify-between items-center mb-1">
+            ${title}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        ${isExpanded ? `
+            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mt-2">
+                ${isBooleanInfo
+                    ? `<div class="grid grid-cols-2 gap-2">${data.map(item => BoolInfoItem(item.label, item.value, item.description)).join('')}</div>`
+                    : `<div class="max-h-48 overflow-y-auto"><table class="w-full text-sm"><tbody>
+                        ${data.map(p => `
+                            <tr class="border-b border-gray-100 last:border-b-0">
+                                <td class="p-1.5 font-mono text-primary-600">${p.number}</td>
+                                <td class="p-1.5">${p.name}</td>
+                                <td class="p-1.5 text-gray-500">Rev ${p.revision}</td>
+                            </tr>`).join('')}
+                        </tbody></table></div>`
+                }
+            </div>`
+        : ''}
+    </div>
+`;
+
+const InfoItem = (label, value) => {
+    // Check if value is an array of links
+    if (Array.isArray(value)) {
+        return `
+            <div class="grid grid-cols-3 py-1">
+                <dt class="text-xs text-gray-500 font-medium col-span-1">${label}</dt>
+                <dd class="text-sm text-gray-800 col-span-2">
+                    ${value.map(link => `<a href="${link.url}" class="text-primary-600 hover:underline" target="_blank">${link.name}</a>`).join(', ')}
+                </dd>
+            </div>
+        `;
+    }
+    // Handle special long-text fields
+    if (['Proposed Change', 'Comments'].includes(label)) {
+         return `
+            <div class="grid grid-cols-3 py-1">
+                <dt class="text-xs text-gray-500 font-medium col-span-1">${label}</dt>
+                <dd class="text-sm text-gray-800 col-span-2 whitespace-pre-wrap">${value || '-'}</dd>
+            </div>
+        `;
+    }
+    return `
+        <div class="grid grid-cols-3 py-1">
+            <dt class="text-xs text-gray-500 font-medium col-span-1">${label}</dt>
+            <dd class="text-sm text-gray-800 col-span-2">${value || '-'}</dd>
+        </div>
+    `;
+};
 
 const BoolInfoItem = (label, value, description) => `
     <div class="flex items-center gap-2">
@@ -494,50 +616,61 @@ const AssessmentTab = (data) => {
     const allIds = riskAssessment.groups.flatMap(g => g.categories.map(c => c.id));
     const allSelected = riskAssessment.selected.length > 0 && riskAssessment.selected.length === allIds.length;
 
+    const riskLevelConfig = {
+        "Low": "bg-green-50",
+        "Medium": "bg-yellow-50",
+        "High": "bg-red-50",
+        "Critical": "bg-red-100",
+    };
+
     return `
-    <div class="overflow-x-auto pt-12">
+    <div class="overflow-x-auto ${riskAssessment.selected.length > 0 ? 'pt-12' : ''}">
         <table class="w-full text-sm">
             <thead class="bg-gray-50">
                 <tr class="text-left text-gray-600">
-                    <th class="p-3 w-4"><input type="checkbox" data-action="toggle-all-assessments" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${allSelected ? 'checked' : ''}></th>
-                    <th class="p-3 font-semibold">Sl.No</th>
-                    <th class="p-3 font-semibold min-w-[250px]">Assessment Category</th>
+                    <th class="p-3 w-4"><input type="checkbox" data-action="toggle-all-assessments" class="h-4 w-4 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500" ${allSelected ? 'checked' : ''}></th>
+                    <th class="p-3 font-semibold">Assessment Category</th>
                     <th class="p-3 font-semibold">Resp. User</th>
                     <th class="p-3 font-semibold">Due Date</th>
-                    <th class="p-3 font-semibold">Risk Level</th>
-                    <th class="p-3 font-semibold">Weightage</th>
-                    <th class="p-3 font-semibold">Attachments</th>
-                    <th class="p-3 font-semibold">Action Items</th>
-                    <th class="p-3 font-semibold">History</th>
+                    <th class="p-3 font-semibold">Available Risks</th>
+                    <th class="p-3 font-semibold">Actual Risk</th>
+                    <th class="p-3 font-semibold">Rating/Weightage</th>
+                    <th class="p-3 font-semibold">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-                ${riskAssessment.groups.map((group, groupIndex) => {
+                ${riskAssessment.groups.map((group) => {
                     const groupCategoryIds = group.categories.map(c => c.id);
                     const allSelectedInGroup = groupCategoryIds.length > 0 && groupCategoryIds.every(id => riskAssessment.selected.includes(id));
-                    return `
-                    <tr class="bg-gray-50 hover:bg-gray-100">
-                        <td class="p-2 w-4"><input type="checkbox" data-action="toggle-assessment-group" data-group="${group.name}" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${allSelectedInGroup ? 'checked' : ''}></td>
-                        <td class="p-2 text-gray-800 font-bold">${groupIndex + 1}</td>
-                        <td colSpan="8" class="p-2 text-gray-800 font-bold flex justify-between items-center">
+
+                    const groupRow = `
+                    <tr class="bg-gray-100 hover:bg-gray-200 transition-colors">
+                        <td class="p-2 w-4"><input type="checkbox" data-action="toggle-assessment-group" data-group="${group.name}" class="h-4 w-4 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500" ${allSelectedInGroup ? 'checked' : ''}></td>
+                        <td colSpan="6" class="p-2 text-gray-800 font-bold flex justify-between items-center">
                             <span>${group.name}</span>
-                            <a href="#" data-action="toggle-group-applicability" data-group="${group.name}" class="text-xs font-medium text-gray-500 hover:text-primary-600">${group.applicable ? "Mark as N/A" : "Mark as Applicable"}</a>
+                            <button data-action="toggle-group-applicability" data-group="${group.name}" class="text-xs font-semibold px-2 py-1 rounded-md ${group.applicable ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-green-100 text-green-800 hover:bg-green-200'}">
+                                ${group.applicable ? "Mark as N/A" : "Mark as Applicable"}
+                            </button>
                         </td>
-                    </tr>
-                    ${group.applicable ? group.categories.map((cat, catIndex) => {
+                    </tr>`;
+
+                    const categoryRows = group.categories.map((cat) => {
                         const isSelected = riskAssessment.selected.includes(cat.id);
                         const isEditing = riskAssessment.editing && riskAssessment.editing.categoryId === cat.id;
+                        const rowClass = isSelected ? 'bg-primary-50' : (riskLevelConfig[cat.risk] || '');
+                        const disabledClass = !group.applicable ? 'opacity-50 pointer-events-none' : '';
+
                         return `
-                        <tr class="hover:bg-gray-50 ${isSelected ? 'bg-primary-50' : ''}">
-                            <td class="p-3 w-4"><input type="checkbox" data-action="toggle-assessment-item" data-id="${cat.id}" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${isSelected ? 'checked' : ''}></td>
-                            <td class="p-3 font-medium text-gray-900">${groupIndex + 1}.${catIndex + 1}</td>
+                        <tr class="hover:bg-gray-50 transition-colors ${rowClass} ${disabledClass}">
+                            <td class="p-3 w-4"><input type="checkbox" data-action="toggle-assessment-item" data-id="${cat.id}" class="h-4 w-4 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500" ${isSelected ? 'checked' : ''}></td>
                             <td class="p-3 font-medium text-gray-900">
                                 <div>${cat.category}</div>
-                                <textarea data-action="update-field" data-id="${cat.id}" data-field="comments" class="w-full text-xs text-gray-500 border-gray-200 rounded-md mt-1 p-1 inline-textarea" placeholder="Add a comment...">${cat.comments}</textarea>
+                                <div class="text-xs text-gray-500 mt-1">${cat.comments || 'No comments'}</div>
                             </td>
                             <td class="p-3" data-field="responsible" data-id="${cat.id}">
                                 ${isEditing && riskAssessment.editing.field === 'responsible' ? 
-                                    `<select data-action="update-field" data-id="${cat.id}" data-field="responsible" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                                    `<select data-action="update-field" data-id="${cat.id}" data-field="responsible" class="w-full border-gray-300 rounded-md shadow-sm text-sm p-1">
+                                        <option value="">Unassigned</option>
                                         ${users.map(u => `<option value="${u}" ${u === cat.responsible ? 'selected' : ''}>${u}</option>`).join('')}
                                     </select>` : 
                                     Avatar(cat.responsible)
@@ -545,29 +678,44 @@ const AssessmentTab = (data) => {
                             </td>
                             <td class="p-3" data-field="dueDate" data-id="${cat.id}">
                                 ${isEditing && riskAssessment.editing.field === 'dueDate' ? 
-                                    `<input type="date" value="${cat.dueDate}" data-action="update-field" data-id="${cat.id}" data-field="dueDate" class="w-full border-gray-300 rounded-md shadow-sm text-sm">` : 
-                                    cat.dueDate
+                                    `<input type="date" value="${cat.dueDate}" data-action="update-field" data-id="${cat.id}" data-field="dueDate" class="w-full border-gray-300 rounded-md shadow-sm text-sm p-1">` :
+                                    `<span class="text-sm">${cat.dueDate}</span>`
                                 }
+                            </td>
+                            <td class="p-3 text-xs">
+                                <div class="font-medium text-gray-700">Score: ${cat.rating * 2}/10</div>
+                                <div class="text-gray-500">${cat.comments}</div>
                             </td>
                             <td class="p-3" data-field="risk" data-id="${cat.id}">
                                 ${isEditing && riskAssessment.editing.field === 'risk' ? 
-                                    `<select data-action="update-field" data-id="${cat.id}" data-field="risk" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                                    `<select data-action="update-field" data-id="${cat.id}" data-field="risk" class="w-full border-gray-300 rounded-md shadow-sm text-sm p-1">
                                         ${riskLevels.map(r => `<option value="${r}" ${r === cat.risk ? 'selected' : ''}>${r}</option>`).join('')}
                                     </select>` : 
                                     RiskBadge(cat.risk)
                                 }
                             </td>
-                            <td class="p-3" data-field="weightage" data-id="${cat.id}">
-                                ${isEditing && riskAssessment.editing.field === 'weightage' ? 
-                                    `<input type="text" value="${cat.weightage}" data-action="update-field" data-id="${cat.id}" data-field="weightage" class="w-full border-gray-300 rounded-md shadow-sm text-sm">` : 
-                                    cat.weightage
+                            <td class="p-3 text-sm" data-field="rating-weightage" data-id="${cat.id}">
+                                ${isEditing && riskAssessment.editing.field === 'rating-weightage' ?
+                                    `<input type="text" value="${cat.rating} / ${cat.weightage}" data-action="update-field" data-id="${cat.id}" data-field="rating-weightage" class="w-24 border-gray-300 rounded-md shadow-sm text-sm p-1">` :
+                                    `R: ${cat.rating} / W: ${cat.weightage}`
                                 }
                             </td>
-                            <td class="p-3">${AttachmentsCell(cat.attachments, cat.id, data.isDocumentAccordionOpen)}</td>
-                            <td class="p-3">${ActionItemsCell(cat.actionItems)}</td>
-                            <td class="p-3">${HistoryCell(cat.history)}</td>
+                            <td class="p-3">
+                                <div class="flex items-center justify-center space-x-1">
+                                    <button data-action="open-panel" data-panel="updateRisk" class="p-1 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-800" title="Update Risk"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+                                    <button data-action="open-panel" data-panel="actionItem" class="p-1 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-800" title="Add Action Item"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></button>
+                                    <button data-action="open-panel" data-panel="attachments" class="p-1 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-800 relative" title="Attachments">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                                        ${cat.attachments.length > 0 ? `<span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-primary-500 ring-2 ring-white"></span>` : ''}
+                                    </button>
+                                    <button class="p-1 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-800" title="History"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg></button>
+                                </div>
+                            </td>
                         </tr>
-                    `}).join('') : '<tr><td colSpan="10" class="p-4 text-center text-gray-500">This group is not applicable.</td></tr>'}`
+                    `;
+                    }).join('');
+
+                    return groupRow + categoryRows;
                 }).join('')}
             </tbody>
         </table>
@@ -576,6 +724,13 @@ const AssessmentTab = (data) => {
 
 const ActionItemsTab = (data) => `
     <div class="p-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Action Items</h3>
+            <button data-action="open-panel" data-panel="actionItem" class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Action Item
+            </button>
+        </div>
         <table class="w-full text-sm">
             <thead class="bg-gray-50">
                 <tr class="text-left text-gray-500">
@@ -598,7 +753,7 @@ const ActionItemsTab = (data) => `
                         <td class="p-2">${item.dueDate}</td>
                         <td class="p-2">${StatusBadge(item.status)}</td>
                         <td class="p-2 text-center">
-                            <button class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 !p-1 px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors">
+                            <button class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 p-1 rounded-md">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>
                             </button>
                         </td>
@@ -608,6 +763,107 @@ const ActionItemsTab = (data) => `
         </table>
     </div>
 `;
+
+const UpdateRiskPanel = (data) => {
+    const item = data.currentRiskItem;
+    if (!item) return '<div class="p-4">No risk item selected.</div>';
+
+    return `
+    <div class="p-4 space-y-4">
+        <h3 class="text-lg font-semibold">${item.category}</h3>
+        <div>
+            <label class="text-sm font-medium text-gray-700">Risk Level</label>
+            <select id="risk-level-select" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
+                ${data.riskLevels.map(r => `<option value="${r}" ${r === item.risk ? 'selected' : ''}>${r}</option>`).join('')}
+            </select>
+        </div>
+        <div>
+            <label class="text-sm font-medium text-gray-700">Description</label>
+            <textarea id="risk-description-textarea" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1" rows="4">${item.comments}</textarea>
+        </div>
+        <div>
+            <label class="text-sm font-medium text-gray-700">Attach Files</label>
+            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div class="space-y-1 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <div class="flex text-sm text-gray-600"><p class="pl-1">or drag and drop</p></div>
+                    <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                </div>
+            </div>
+        </div>
+        <div class="text-right">
+            <button data-action="save-risk" class="px-4 py-2 rounded-md font-semibold text-sm inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Save Changes</button>
+        </div>
+        <div class="border-t pt-4">
+            <h4 class="text-sm font-semibold text-gray-800 mb-2">History</h4>
+            <!-- History items would be rendered here -->
+        </div>
+    </div>
+`;
+}
+
+const ActionItemPanel = (data) => `
+    <div class="p-4 space-y-4">
+        <div>
+            <label class="text-sm font-medium text-gray-700">Name</label>
+            <input type="text" id="action-item-name" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
+        </div>
+        <div>
+            <label class="text-sm font-medium text-gray-700">Description</label>
+            <textarea id="action-item-description" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1" rows="4"></textarea>
+        </div>
+        <div>
+             <label class="text-sm font-medium text-gray-700">Internal Coordinator</label>
+             <select id="action-item-responsible" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
+                ${data.users.map(u => `<option value="${u}" ${u === data.loggedInUser ? 'selected' : ''}>${u}</option>`).join('')}
+            </select>
+        </div>
+        <div>
+             <label class="text-sm font-medium text-gray-700">Supplier Coordinator</label>
+             <select class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
+                ${data.users.map(u => `<option value="${u}">${u}</option>`).join('')}
+            </select>
+        </div>
+        <div>
+            <label class="text-sm font-medium text-gray-700">Due Date</label>
+            <input type="date" id="action-item-due-date" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
+        </div>
+         <div class="text-right">
+            <button data-action="add-action-item" class="px-4 py-2 rounded-md font-semibold text-sm inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Create Action Item</button>
+        </div>
+    </div>
+`;
+
+const AttachmentsPanel = (data) => {
+    const attachments = data.currentRiskItem ? data.currentRiskItem.attachments : [];
+
+    return `
+    <div class="p-4 space-y-4">
+        <h3 class="text-lg font-semibold">Manage Attachments</h3>
+        <div class="space-y-2">
+            ${attachments.map(att => `
+                <div class="flex items-center justify-between p-2 border rounded-md">
+                    <span class="text-sm">${att.name}</span>
+                    <button class="text-red-500 hover:text-red-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+            `).join('')}
+            ${attachments.length === 0 ? '<p class="text-sm text-gray-500">No attachments found.</p>' : ''}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Upload New File</label>
+            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div class="space-y-1 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <div class="flex text-sm text-gray-600"><p class="pl-1">or drag and drop</p></div>
+                    <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+}
 
 const AuthorizationTab = (data) => {
     const { authorization, loggedInUser } = data;
@@ -624,7 +880,7 @@ const AuthorizationTab = (data) => {
         const searchLower = searchQuery.toLowerCase();
         const matchesSearch = !searchQuery || 
             role.role.toLowerCase().includes(searchLower) || 
-            role.user.toLowerCase().includes(searchLower);
+            (role.user && role.user.toLowerCase().includes(searchLower));
 
         const matchesFindMe = !showFindMe || role.user === loggedInUser;
 
@@ -638,51 +894,43 @@ const AuthorizationTab = (data) => {
 
     return `
         <div class="p-4">
-            <div class="grid grid-cols-4 gap-4 mb-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 ${Object.entries(kpis).map(([key, value]) => KpiTile(key, value, activeFilter === key)).join('')}
             </div>
             <div class="flex justify-between items-center mb-4">
-                <div class="w-1/2">
-                    <input type="text" data-action="search-auth" value="${searchQuery}" placeholder="Search by role or user..." class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                <div class="relative w-1/2">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" data-action="search-auth" value="${searchQuery}" placeholder="Search by role or user..." class="w-full border-gray-300 rounded-md shadow-sm text-sm pl-10">
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" id="findMeToggle" data-action="toggle-find-me" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${showFindMe ? 'checked' : ''}>
+                    <input type="checkbox" id="findMeToggle" data-action="toggle-find-me" class="h-4 w-4 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500" ${showFindMe ? 'checked' : ''}>
                     <label for="findMeToggle" class="ml-2 text-sm font-medium text-gray-700">Find Me</label>
                 </div>
             </div>
-            <div class="space-y-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 ${filteredRoles.map(r => `
-                    <div class="border rounded-lg p-2">
-                        <div class="grid grid-cols-2 gap-2">
+                    <div class="border rounded-lg p-3 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div class="flex justify-between items-start">
                             <div>
-                                <label class="text-xs text-gray-500">Level</label>
-                                <p class="font-medium">${r.level}</p>
+                                <p class="font-bold text-gray-800">${r.role}</p>
+                                <p class="text-xs text-gray-500">Level ${r.level}</p>
                             </div>
+                            ${StatusBadge(r.status)}
+                        </div>
+                        <div class="mt-3">
+                            <label for="user-select-${r.role.replace(/\s/g, '-')}" class="text-xs font-medium text-gray-600">Assigned User</label>
+                            <select id="user-select-${r.role.replace(/\s/g, '-')}" data-action="assign-user" data-role="${r.role}" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1 focus:ring-primary-500 focus:border-primary-500">
+                                <option value="">Select User</option>
+                                ${data.users.map(u => `<option value="${u}" ${u === r.user ? 'selected' : ''}>${u}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="mt-3 flex justify-between items-center text-xs text-gray-500">
                             <div>
-                                <label class="text-xs text-gray-500">Role</label>
-                                <p class="font-medium">${r.role}</p>
+                                <p>Signed: <span class="font-mono font-semibold text-gray-700">${r.signature || 'N/A'}</span></p>
+                                <p>Date: <span class="font-semibold text-gray-700">${r.date || 'N/A'}</span></p>
                             </div>
-                            <div class="col-span-2">
-                                <label class="text-xs text-gray-500">Assigned User</label>
-                                <select data-action="assign-user" data-role="${r.role}" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
-                                    <option value="">Select User</option>
-                                    ${data.users.map(u => `<option value="${u}" ${u === r.user ? 'selected' : ''}>${u}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-500">Status</label>
-                                <p>${StatusBadge(r.status)}</p>
-                            </div>
-                            <div>
-    .                            <label class="text-xs text-gray-500">Signature</label>
-                                <p class="font-mono text-sm">${r.signature || '-'}</p>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-500">Date</label>
-                                <p class="text-gray-500">${r.date}</p>
-                            </div>
-                            <div class="text-right self-end">
-                                ${r.user === data.loggedInUser && r.status === 'Pending' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Sign</button>` : ''}
+                            <div class="text-right">
+                                ${r.user === data.loggedInUser && (r.status === 'Not Started' || r.status === 'Pending') ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Sign</button>` : ''}
                                 ${r.user === data.loggedInUser && r.status === 'Signed' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400">Revoke</button>` : ''}
                             </div>
                         </div>
@@ -693,12 +941,55 @@ const AuthorizationTab = (data) => {
     `;
 }
 
-const KpiTile = (title, value, isActive) => `
-    <div data-action="set-auth-filter" data-filter="${title}" class="p-4 rounded-lg cursor-pointer ${isActive ? 'bg-primary-100 border-primary-500' : 'bg-gray-100'} border">
-        <p class="text-sm text-gray-500">${title}</p>
-        <p class="text-2xl font-bold">${value}</p>
+const KpiTile = (title, value, isActive) => {
+    const kpiConfig = {
+        "Total Count": {
+            bg: 'bg-gray-100',
+            text: 'text-gray-800',
+            activeBg: 'bg-blue-100',
+            activeBorder: 'border-blue-500',
+            hoverBg: 'hover:bg-gray-200',
+        },
+        "Requested": {
+            bg: 'bg-yellow-100',
+            text: 'text-yellow-800',
+            activeBg: 'bg-yellow-200',
+            activeBorder: 'border-yellow-500',
+            hoverBg: 'hover:bg-yellow-200',
+        },
+        "Approved": {
+            bg: 'bg-green-100',
+            text: 'text-green-800',
+            activeBg: 'bg-green-200',
+            activeBorder: 'border-green-500',
+            hoverBg: 'hover:bg-green-200',
+        },
+        "Rejected": {
+            bg: 'bg-red-100',
+            text: 'text-red-800',
+            activeBg: 'bg-red-200',
+            activeBorder: 'border-red-500',
+            hoverBg: 'hover:bg-red-200',
+        },
+    };
+
+    const config = kpiConfig[title] || kpiConfig["Total Count"];
+
+    const classes = `
+        p-3 rounded-lg cursor-pointer border-2 transition-all duration-200
+        ${isActive
+            ? `${config.activeBg} ${config.activeBorder}`
+            : `${config.bg} border-transparent ${config.hoverBg}`
+        }
+    `;
+
+    return `
+    <div data-action="set-auth-filter" data-filter="${title}" class="${classes.trim()}">
+        <p class="text-sm font-medium ${config.text}">${title}</p>
+        <p class="text-2xl font-bold ${config.text}">${value}</p>
     </div>
-`;
+    `;
+};
 
 const AttachmentsCell = (attachments, categoryId, isDocumentAccordionOpen) => {
     const documentCount = attachments.length;
@@ -755,9 +1046,44 @@ const HistoryCell = (history) => `
 `;
 
 const StatusBadge = (status) => {
-    const config = { "In Progress": "bg-blue-100 text-blue-800", "Completed": "bg-green-100 text-green-800", "Pending": "bg-yellow-100 text-yellow-800", "Not Started": "bg-gray-100 text-gray-800", "Signed": "bg-green-100 text-green-800" }[status] || "bg-gray-100 text-gray-800";
-    return `<span class="px-2 py-0.5 rounded-full text-xs font-medium ${config}">${status}</span>`;
-}
+    const config = {
+        "In Progress": "bg-blue-100 text-blue-800 border border-blue-200",
+        "Completed": "bg-green-100 text-green-800 border border-green-200",
+        "Pending": "bg-yellow-100 text-yellow-800 border border-yellow-200",
+        "Not Started": "bg-gray-100 text-gray-800 border border-gray-200",
+        "Signed": "bg-green-100 text-green-800 border border-green-200",
+        "Rejected": "bg-red-100 text-red-800 border border-red-200",
+    }[status] || "bg-gray-100 text-gray-800 border border-gray-200";
+    return `<span class="px-2 py-1 rounded-md text-xs font-bold ${config}">${status}</span>`;
+};
+
+const Toast = (toast) => {
+    if (!toast.visible) return '';
+
+    const config = {
+        success: { bg: 'bg-green-500', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>' },
+        error: { bg: 'bg-red-500', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>' },
+        info: { bg: 'bg-blue-500', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>' },
+    };
+
+    const current = config[toast.type] || config.info;
+
+    return `
+        <div class="fixed top-5 right-5 z-[100] ${current.bg} text-white py-2 px-4 rounded-lg shadow-lg flex items-center animate-fade-in-down">
+            <div class="w-6 h-6 mr-2">${current.icon}</div>
+            <span>${toast.message}</span>
+        </div>
+    `;
+};
+
+const LoadingSpinner = () => `
+    <div class="fixed inset-0 bg-gray-900/20 z-[101] flex items-center justify-center">
+        <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+    </div>
+`;
 
 const RiskBadge = (risk) => {
     const config = {
@@ -770,9 +1096,8 @@ const RiskBadge = (risk) => {
 };
 
 const Avatar = (name) => {
-    if (!name) return '<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">?</div>';
-    const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    return `<div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold text-gray-600" title="${name}">${initials}</div>`;
+    if (!name) return `<div class="text-sm text-gray-500 italic">Unassigned</div>`;
+    return `<div class="text-sm font-medium text-gray-800" title="${name}">${name}</div>`;
 };
 
 const SlidingPanel = (panel, title, content, isOpen) => `
