@@ -81,7 +81,10 @@ const state = {
             { level: 3, role: "Risk Analyst (Tech)", user: "", status: "Not Started", signature: "", date: "", method: "" },
             { level: 3, role: "Risk Analyst (Finance)", user: "", status: "Not Started", signature: "", date: "", method: "" },
             { level: 4, role: "Final Approver", user: "", status: "Not Started", signature: "", date: "", method: "" },
-        ]
+        ],
+        searchQuery: '',
+        showFindMe: false,
+        activeFilter: 'Total Count'
     },
     conversation: [
         { user: "Jane Doe", avatar: "https://i.pravatar.cc/40?u=jane", text: "Initial review is done. @Alex Chen can you please prioritize the feasibility study?", time: "2 hours ago" },
@@ -90,7 +93,6 @@ const state = {
     panels: {
         conversation: false,
         history: false,
-        authorization: false
     },
     modals: {
         actionItem: false,
@@ -131,9 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (e.target.closest('[data-action="toggle-conversation"]')) {
             state.panels.conversation = !state.panels.conversation;
-        }
-        if (e.target.closest('[data-action="toggle-authorization"]')) {
-            state.panels.authorization = !state.panels.authorization;
         }
         if (e.target.closest('[data-action="toggle-history"]')) {
             state.panels.history = !state.panels.history;
@@ -216,8 +215,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             state.modals.bulkActionsOpen = null;
         }
+        if (e.target.closest('[data-action="set-auth-filter"]')) {
+            state.authorization.activeFilter = e.target.closest('[data-action="set-auth-filter"]').dataset.filter;
+        }
+        if (e.target.closest('[data-action="toggle-find-me"]')) {
+            state.authorization.showFindMe = !state.authorization.showFindMe;
+        }
 
         render();
+    });
+
+    document.body.addEventListener('input', (e) => {
+        if (e.target.matches('[data-action="search-auth"]')) {
+            state.authorization.searchQuery = e.target.value;
+            render();
+        }
     });
 
     document.body.addEventListener('change', (e) => {
@@ -267,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const App = (data) => `
     <div class="flex flex-col h-screen">
+        ${RiskMeter()}
         ${PageHeader(data)}
         <main class="flex-grow overflow-y-auto p-4">
             <div class="max-w-full mx-auto space-y-6">
@@ -276,7 +289,32 @@ const App = (data) => `
         </main>
         ${SlidingPanel('conversation', "Conversation", ConversationCard(data.conversation), data.panels.conversation)}
         ${SlidingPanel('history', "Status History", StatusHistoryCard(data.statusHistory), data.panels.history)}
-        ${SlidingPanel('authorization', "Authorization", AuthorizationPanel(data), data.panels.authorization)}
+    </div>
+`;
+
+const RiskMeter = () => `
+    <div class="fixed left-4 top-1/2 -translate-y-1/2 z-50">
+        <div class="bg-white rounded-full shadow-lg p-2">
+            <div class="w-16 h-16 flex items-center justify-center">
+                <svg class="w-full h-full" viewBox="0 0 36 36">
+                    <path class="text-gray-200"
+                        d="M18 2.0845
+                          a 15.9155 15.9155 0 0 1 0 31.831
+                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke-width="4" />
+                    <path class="text-red-500"
+                        stroke-dasharray="75, 100"
+                        d="M18 2.0845
+                          a 15.9155 15.9155 0 0 1 0 31.831
+                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke-width="4"
+                        stroke-linecap="round" />
+                    <text x="18" y="22" text-anchor="middle" class="text-lg font-bold fill-current text-red-500">75</text>
+                </svg>
+            </div>
+        </div>
     </div>
 `;
 
@@ -300,9 +338,6 @@ const PageHeader = (data) => `
                     </button>
                     ${data.unreadConversations > 0 ? `<span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>` : ''}
                 </div>
-                <button data-action="toggle-authorization" class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                </button>
                 <button data-action="toggle-history" class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                 </button>
@@ -409,9 +444,12 @@ const RiskAndActionsCard = (data) => `
             <nav class="-mb-px flex space-x-6 px-4" aria-label="Tabs">
                 <button data-action="set-risk-tab" data-tab="assessment" class="${data.riskAssessment.activeTab === 'assessment' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Assessment</button>
                 <button data-action="set-risk-tab" data-tab="actions" class="${data.riskAssessment.activeTab === 'actions' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Action Items</button>
+                <button data-action="set-risk-tab" data-tab="authorization" class="${data.riskAssessment.activeTab === 'authorization' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Authorization</button>
             </nav>
         </div>
-        ${data.riskAssessment.activeTab === 'assessment' ? AssessmentTab(data) : ActionItemsTab(data)}
+        ${data.riskAssessment.activeTab === 'assessment' ? AssessmentTab(data) : 
+          data.riskAssessment.activeTab === 'actions' ? ActionItemsTab(data) : 
+          AuthorizationTab(data)}
     </div>
 `;
 
@@ -462,35 +500,37 @@ const AssessmentTab = (data) => {
             <thead class="bg-gray-50">
                 <tr class="text-left text-gray-600">
                     <th class="p-3 w-4"><input type="checkbox" data-action="toggle-all-assessments" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${allSelected ? 'checked' : ''}></th>
+                    <th class="p-3 font-semibold">Sl.No</th>
                     <th class="p-3 font-semibold min-w-[250px]">Assessment Category</th>
                     <th class="p-3 font-semibold">Resp. User</th>
                     <th class="p-3 font-semibold">Due Date</th>
                     <th class="p-3 font-semibold">Risk Level</th>
-                    <th class="p-3 font-semibold">Status</th>
-                    <th class="p-3 font-semibold">Rating / Weight</th>
+                    <th class="p-3 font-semibold">Weightage</th>
                     <th class="p-3 font-semibold">Attachments</th>
                     <th class="p-3 font-semibold">Action Items</th>
                     <th class="p-3 font-semibold">History</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-                ${riskAssessment.groups.map(group => {
+                ${riskAssessment.groups.map((group, groupIndex) => {
                     const groupCategoryIds = group.categories.map(c => c.id);
                     const allSelectedInGroup = groupCategoryIds.length > 0 && groupCategoryIds.every(id => riskAssessment.selected.includes(id));
                     return `
                     <tr class="bg-gray-50 hover:bg-gray-100">
                         <td class="p-2 w-4"><input type="checkbox" data-action="toggle-assessment-group" data-group="${group.name}" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${allSelectedInGroup ? 'checked' : ''}></td>
-                        <td colSpan="9" class="p-2 text-gray-800 font-bold flex justify-between items-center">
+                        <td class="p-2 text-gray-800 font-bold">${groupIndex + 1}</td>
+                        <td colSpan="8" class="p-2 text-gray-800 font-bold flex justify-between items-center">
                             <span>${group.name}</span>
                             <a href="#" data-action="toggle-group-applicability" data-group="${group.name}" class="text-xs font-medium text-gray-500 hover:text-primary-600">${group.applicable ? "Mark as N/A" : "Mark as Applicable"}</a>
                         </td>
                     </tr>
-                    ${group.applicable ? group.categories.map(cat => {
+                    ${group.applicable ? group.categories.map((cat, catIndex) => {
                         const isSelected = riskAssessment.selected.includes(cat.id);
                         const isEditing = riskAssessment.editing && riskAssessment.editing.categoryId === cat.id;
                         return `
                         <tr class="hover:bg-gray-50 ${isSelected ? 'bg-primary-50' : ''}">
                             <td class="p-3 w-4"><input type="checkbox" data-action="toggle-assessment-item" data-id="${cat.id}" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${isSelected ? 'checked' : ''}></td>
+                            <td class="p-3 font-medium text-gray-900">${groupIndex + 1}.${catIndex + 1}</td>
                             <td class="p-3 font-medium text-gray-900">
                                 <div>${cat.category}</div>
                                 <textarea data-action="update-field" data-id="${cat.id}" data-field="comments" class="w-full text-xs text-gray-500 border-gray-200 rounded-md mt-1 p-1 inline-textarea" placeholder="Add a comment...">${cat.comments}</textarea>
@@ -517,18 +557,10 @@ const AssessmentTab = (data) => {
                                     RiskBadge(cat.risk)
                                 }
                             </td>
-                            <td class="p-3" data-field="status" data-id="${cat.id}">
-                                ${isEditing && riskAssessment.editing.field === 'status' ? 
-                                    `<select data-action="update-field" data-id="${cat.id}" data-field="status" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
-                                        ${statuses.map(s => `<option value="${s}" ${s === cat.status ? 'selected' : ''}>${s}</option>`).join('')}
-                                    </select>` : 
-                                    StatusBadge(cat.status)
-                                }
-                            </td>
-                            <td class="p-3" data-field="rating-weightage" data-id="${cat.id}">
-                                ${isEditing && riskAssessment.editing.field === 'rating-weightage' ? 
-                                    `<input type="text" value="${cat.rating} / ${cat.weightage}" data-action="update-field" data-id="${cat.id}" data-field="rating-weightage" class="w-full border-gray-300 rounded-md shadow-sm text-sm">` : 
-                                    `${cat.rating} / ${cat.weightage}`
+                            <td class="p-3" data-field="weightage" data-id="${cat.id}">
+                                ${isEditing && riskAssessment.editing.field === 'weightage' ? 
+                                    `<input type="text" value="${cat.weightage}" data-action="update-field" data-id="${cat.id}" data-field="weightage" class="w-full border-gray-300 rounded-md shadow-sm text-sm">` : 
+                                    cat.weightage
                                 }
                             </td>
                             <td class="p-3">${AttachmentsCell(cat.attachments, cat.id, data.isDocumentAccordionOpen)}</td>
@@ -574,6 +606,97 @@ const ActionItemsTab = (data) => `
                 `).join('')}
             </tbody>
         </table>
+    </div>
+`;
+
+const AuthorizationTab = (data) => {
+    const { authorization, loggedInUser } = data;
+    const { roles, searchQuery, showFindMe, activeFilter } = authorization;
+
+    const kpis = {
+        "Total Count": roles.length,
+        "Requested": roles.filter(r => r.status === 'Not Started').length,
+        "Approved": roles.filter(r => r.status === 'Signed').length,
+        "Rejected": roles.filter(r => r.status === 'Rejected').length,
+    };
+
+    const filteredRoles = roles.filter(role => {
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = !searchQuery || 
+            role.role.toLowerCase().includes(searchLower) || 
+            role.user.toLowerCase().includes(searchLower);
+
+        const matchesFindMe = !showFindMe || role.user === loggedInUser;
+
+        const matchesFilter = activeFilter === 'Total Count' ||
+            (activeFilter === 'Requested' && role.status === 'Not Started') ||
+            (activeFilter === 'Approved' && role.status === 'Signed') ||
+            (activeFilter === 'Rejected' && role.status === 'Rejected');
+
+        return matchesSearch && matchesFindMe && matchesFilter;
+    });
+
+    return `
+        <div class="p-4">
+            <div class="grid grid-cols-4 gap-4 mb-4">
+                ${Object.entries(kpis).map(([key, value]) => KpiTile(key, value, activeFilter === key)).join('')}
+            </div>
+            <div class="flex justify-between items-center mb-4">
+                <div class="w-1/2">
+                    <input type="text" data-action="search-auth" value="${searchQuery}" placeholder="Search by role or user..." class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="findMeToggle" data-action="toggle-find-me" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-offset-0 focus:ring-primary-200 focus:ring-opacity-50" ${showFindMe ? 'checked' : ''}>
+                    <label for="findMeToggle" class="ml-2 text-sm font-medium text-gray-700">Find Me</label>
+                </div>
+            </div>
+            <div class="space-y-2">
+                ${filteredRoles.map(r => `
+                    <div class="border rounded-lg p-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-xs text-gray-500">Level</label>
+                                <p class="font-medium">${r.level}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500">Role</label>
+                                <p class="font-medium">${r.role}</p>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-xs text-gray-500">Assigned User</label>
+                                <select data-action="assign-user" data-role="${r.role}" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
+                                    <option value="">Select User</option>
+                                    ${data.users.map(u => `<option value="${u}" ${u === r.user ? 'selected' : ''}>${u}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500">Status</label>
+                                <p>${StatusBadge(r.status)}</p>
+                            </div>
+                            <div>
+    .                            <label class="text-xs text-gray-500">Signature</label>
+                                <p class="font-mono text-sm">${r.signature || '-'}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500">Date</label>
+                                <p class="text-gray-500">${r.date}</p>
+                            </div>
+                            <div class="text-right self-end">
+                                ${r.user === data.loggedInUser && r.status === 'Pending' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Sign</button>` : ''}
+                                ${r.user === data.loggedInUser && r.status === 'Signed' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400">Revoke</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+const KpiTile = (title, value, isActive) => `
+    <div data-action="set-auth-filter" data-filter="${title}" class="p-4 rounded-lg cursor-pointer ${isActive ? 'bg-primary-100 border-primary-500' : 'bg-gray-100'} border">
+        <p class="text-sm text-gray-500">${title}</p>
+        <p class="text-2xl font-bold">${value}</p>
     </div>
 `;
 
@@ -629,56 +752,6 @@ const HistoryCell = (history) => `
     <button class="text-gray-500 hover:text-primary-600" title="View History">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>
     </button>
-`;
-
-const AuthorizationPanel = (data) => `
-    <div class="p-2">
-        <div class="flex items-center gap-2 mb-2">
-            <label class="text-sm font-medium text-gray-600">Template:</label>
-            <select class="text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50">
-                ${Object.keys(data.authorization.templates).map(t => `<option ${t === data.authorization.template ? 'selected' : ''}>${t}</option>`).join('')}
-            </select>
-        </div>
-        <div class="space-y-2">
-            ${data.authorization.roles.map(r => `
-                <div class="border rounded-lg p-2">
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-gray-500">Level</label>
-                            <p class="font-medium">${r.level}</p>
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">Role</label>
-                            <p class="font-medium">${r.role}</p>
-                        </div>
-                        <div class="col-span-2">
-                            <label class="text-xs text-gray-500">Assigned User</label>
-                            <select data-action="assign-user" data-role="${r.role}" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
-                                <option value="">Select User</option>
-                                ${data.users.map(u => `<option value="${u}" ${u === r.user ? 'selected' : ''}>${u}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">Status</label>
-                            <p>${StatusBadge(r.status)}</p>
-                        </div>
-                        <div>
-.                            <label class="text-xs text-gray-500">Signature</label>
-                            <p class="font-mono text-sm">${r.signature || '-'}</p>
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">Date</label>
-                            <p class="text-gray-500">${r.date}</p>
-                        </div>
-                        <div class="text-right self-end">
-                            ${r.user === data.loggedInUser && r.status === 'Pending' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Sign</button>` : ''}
-                            ${r.user === data.loggedInUser && r.status === 'Signed' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400">Revoke</button>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    </div>
 `;
 
 const StatusBadge = (status) => {
@@ -745,21 +818,6 @@ const ConversationCard = (conversation) => `
 `;
 
 const StatusHistoryCard = (history) => `
-    <div class="p-4">
-        <ul class="space-y-3">
-            ${history.map(h => `
-                <li class="flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <div>
-                        <p class="font-medium text-gray-800">${h.status}</p>
-                        <p class="text-sm text-gray-500">${h.user} on ${h.date}</p>
-                    </div>
-                </li>
-            `).join('')}
-        </ul>
-    </div>
-`;
-tatusHistoryCard = (history) => `
     <div class="p-4">
         <ul class="space-y-3">
             ${history.map(h => `

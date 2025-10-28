@@ -75,3 +75,15 @@ td .inline-textarea {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+.risk-meter {
+    position: fixed;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+}
+
+.kpi-tile {
+    cursor: pointer;
+}
