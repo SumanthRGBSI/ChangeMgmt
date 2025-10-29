@@ -1,3 +1,4 @@
+
 const state = {
     crNumber: "CR-2025-00123",
     crName: "Update Main Housing Assembly - V2",
@@ -178,18 +179,9 @@ const showToast = (message, type = 'success') => {
 
 const render = () => {
     const root = document.getElementById('root');
-    const focusedElement = document.activeElement;
-    const focusedId = focusedElement ? focusedElement.dataset.id : null;
-    const focusedField = focusedElement ? focusedElement.dataset.field : null;
-
+    const scrollY = window.scrollY;
     root.innerHTML = App(state);
-
-    if (focusedId && focusedField) {
-        const newFocus = root.querySelector(`[data-id='${focusedId}'][data-field='${focusedField}']`);
-        if (newFocus) {
-            newFocus.focus();
-        }
-    }
+    window.scrollTo(0, scrollY);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -233,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (e.target.closest('[data-action="save-risk"]')) {
             const id = state.currentRiskItem.id;
-            const riskLevel = parseInt(document.getElementById('risk-level-select').value, 10);
+            const riskLevel = parseInt(document.querySelector('input[name="risk-level"]:checked').value, 10);
             const description = document.getElementById('risk-description-textarea').value;
 
             const category = state.riskAssessment.groups.flatMap(g => g.categories).find(c => c.id === id);
@@ -356,6 +348,25 @@ document.addEventListener('DOMContentLoaded', () => {
             state.authorization.showFindMe = !state.authorization.showFindMe;
         }
 
+        if (e.target.closest('[data-action="sign-auth"]')) {
+            const roleName = e.target.closest('[data-action="sign-auth"]').dataset.role;
+            const role = state.authorization.roles.find(r => r.role === roleName);
+            if (role) {
+                role.status = 'Signed';
+                role.signature = state.loggedInUser.split(' ').map(n => n[0]).join('.').toUpperCase() + '.';
+                role.date = new Date().toISOString().slice(0, 10);
+            }
+        }
+        if (e.target.closest('[data-action="revoke-auth"]')) {
+            const roleName = e.target.closest('[data-action="revoke-auth"]').dataset.role;
+            const role = state.authorization.roles.find(r => r.role === roleName);
+            if (role) {
+                role.status = 'Not Started';
+                role.signature = '';
+                role.date = '';
+            }
+        }
+
         render();
     });
 
@@ -436,9 +447,8 @@ const App = (data) => `
     <div class="flex flex-col h-screen">
         ${Toast(data.toast)}
         ${data.loading ? LoadingSpinner() : ''}
-        ${RiskMeter(data.riskAssessment)}
         ${PageHeader(data)}
-        <main class="flex-grow overflow-y-auto p-4 pl-32">
+        <main class="flex-grow overflow-y-auto p-4">
             <div class="max-w-full mx-auto space-y-6">
                 ${DetailsCard(data.details)}
                 ${RiskAndActionsCard(data)}
@@ -451,30 +461,6 @@ const App = (data) => `
         ${SlidingPanel('attachments', "Manage Attachments", AttachmentsPanel(data), data.panels.attachments)}
     </div>
 `;
-
-const RiskMeter = (riskAssessment) => {
-    const { score } = calculateRiskScore(riskAssessment);
-
-    const getColorForScore = (s) => {
-        if (s <= 40) return '#10B981'; // green
-        if (s <= 70) return '#F59E0B'; // amber
-        return '#EF4444'; // red
-    };
-
-    const meterColor = getColorForScore(score);
-
-    return `
-    <div class="fixed left-4 top-1/2 -translate-y-1/2 z-50 bg-white p-3 rounded-lg shadow-lg flex flex-col items-center space-y-2 w-24">
-        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Avg. Risk</div>
-        <div class="w-6 h-40 bg-gray-200 rounded-full overflow-hidden relative border-2 border-gray-300">
-            <div id="risk-mercury" class="absolute bottom-0 left-0 right-0 transition-all duration-500" style="height: ${score}%; background-image: linear-gradient(to top, #10B981, #F59E0B 80%, #EF4444);"></div>
-        </div>
-        <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold border-4" style="border-color: ${meterColor}; color: ${meterColor};">
-            ${score}
-        </div>
-    </div>
-    `;
-};
 
 const getNextRolesToSign = (roles) => {
     const minUnsignedLevel = Math.min(
@@ -504,12 +490,6 @@ const PageHeader = (data) => {
                 <h1 class="text-2xl font-bold text-gray-900">${data.crName}</h1>
             </div>
             <div class="flex items-center gap-2">
-                <div class="flex items-center gap-2 p-2 rounded-lg bg-gray-100 border">
-                    <span class="text-sm font-medium text-gray-600">Overall Status:</span>
-                    ${StatusBadge(data.overallStatus)}
-                </div>
-                <button ${!canApprove ? 'disabled' : ''} class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Approve</button>
-                <div class="h-8 border-l border-gray-300 mx-2"></div>
                 <div class="relative">
                     <button data-action="toggle-conversation" class="bg-transparent text-gray-500 hover:text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -550,17 +530,19 @@ const CollapsedDetails = (data) => `
 `;
 
 const ExpandedDetails = (data) => `
-    <div class="fade-in border-t border-gray-200 p-4 space-y-4">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div class="lg:col-span-2 space-y-4">
-                ${renderTwoColumnDetailSection('Basic Information', data.basicInfo)}
-            </div>
-            <div class="lg:col-span-1 space-y-4">
-                ${renderDetailSection('Supplier Details', data.supplierDetails)}
-                ${renderCollapsibleDetailSection('Related Part Number', data.relatedParts, 'related-parts', data.isRelatedPartsExpanded)}
-            </div>
+    <div class="fade-in border-t border-gray-200 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:row-span-2">
+            ${renderTwoColumnDetailSection('Basic Information', data.basicInfo)}
         </div>
-        ${renderCollapsibleDetailSection('Additional Details', data.additionalDetails, 'additional-details', data.isAdditionalDetailsExpanded, true)}
+        <div>
+            ${renderDetailSection('Supplier Details', data.supplierDetails)}
+        </div>
+        <div>
+            ${renderCollapsibleDetailSection('Related Part Number', data.relatedParts, 'related-parts', data.isRelatedPartsExpanded)}
+        </div>
+        <div class="md:col-span-2">
+            ${renderCollapsibleDetailSection('Additional Details', data.additionalDetails, 'additional-details', data.isAdditionalDetailsExpanded, true)}
+        </div>
     </div>
 `;
 
@@ -642,7 +624,7 @@ const InfoItem = (label, value) => {
 
 const BoolInfoItem = (label, value, description) => `
     <div class="flex items-center gap-2">
-        <span class="w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-red-500'}"></span>
+        <span class="w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-red-500'} "></span>
         <p class="text-sm font-medium text-gray-800">${label}</p>
         ${description ? `
             <div class="tooltip">
@@ -860,14 +842,30 @@ const UpdateRiskPanel = (data) => {
     const item = data.currentRiskItem;
     if (!item) return '<div class="p-4">No risk item selected.</div>';
 
+    const riskLevelColors = {
+        0: 'green',
+        1: 'yellow',
+        2: 'orange',
+        3: 'red',
+    };
+
     return `
     <div class="p-4 space-y-4">
         <h3 class="text-lg font-semibold">${item.category}</h3>
         <div>
             <label class="text-sm font-medium text-gray-700">Risk Level</label>
-            <select id="risk-level-select" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1">
-                ${data.riskLevels.map(r => `<option value="${r.value}" ${r.value === item.risk ? 'selected' : ''}>${r.name}</option>`).join('')}
-            </select>
+            <div class="grid grid-cols-2 gap-4 mt-2">
+                ${data.riskLevels.map(r => `
+                    <label for="risk-level-${r.value}" class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input type="radio" id="risk-level-${r.value}" name="risk-level" value="${r.value}" class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500" ${r.value === item.risk ? 'checked' : ''}>
+                        <div class="ml-3 text-sm">
+                            <p class="font-bold text-gray-900">${r.name}</p>
+                            <p class="text-gray-500">Score: ${r.value}</p>
+                        </div>
+                        <div class="w-4 h-4 rounded-full ml-auto" style="background-color: ${riskLevelColors[r.value] || 'gray'}"></div>
+                    </label>
+                `).join('')}
+            </div>
         </div>
         <div>
             <label class="text-sm font-medium text-gray-700">Description</label>
@@ -888,10 +886,30 @@ const UpdateRiskPanel = (data) => {
         </div>
         <div class="border-t pt-4">
             <h4 class="text-sm font-semibold text-gray-800 mb-2">History</h4>
-            <!-- History items would be rendered here -->
+            ${HistoryTimeline(item.history)}
         </div>
     </div>
 `;
+};
+
+const HistoryTimeline = (history) => {
+    if (!history || history.length === 0) {
+        return '<p class="text-sm text-gray-500">No history available.</p>';
+    }
+
+    return `
+        <ul class="space-y-4">
+            ${history.map(h => `
+                <li class="border-l-2 pl-4">
+                    <div>
+                        <p class="font-medium text-gray-800">Field <span class="font-bold">${h.field}</span> changed</p>
+                        <p class="text-sm text-gray-600">From <span class="font-semibold">${h.oldValue}</span> to <span class="font-semibold">${h.newValue}</span></p>
+                        <p class="text-xs text-gray-400 mt-1">${h.user} at ${h.timestamp}</p>
+                    </div>
+                </li>
+            `).join('')}
+        </ul>
+    `;
 };
 
 const ActionItemPanel = (data) => `
@@ -1000,48 +1018,50 @@ const AuthorizationTab = (data) => {
 
     return `
         <div class="p-4">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                ${Object.entries(kpis).map(([key, value]) => KpiTile(key, value, activeFilter === key)).join('')}
-            </div>
-            <div class="flex justify-between items-center mb-4">
-                <div class="relative w-1/2">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" data-action="search-auth" value="${searchQuery}" placeholder="Search by role or user..." class="w-full border-gray-300 rounded-md shadow-sm text-sm pl-10">
+            <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    ${Object.entries(kpis).map(([key, value]) => KpiTile(key, value, activeFilter === key)).join('')}
                 </div>
-                <div class="flex items-center">
-                    <input type="checkbox" id="findMeToggle" data-action="toggle-find-me" class="h-4 w-4 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500" ${showFindMe ? 'checked' : ''}>
-                    <label for="findMeToggle" class="ml-2 text-sm font-medium text-gray-700">Find Me</label>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${filteredRoles.map(r => `
-                    <div class="border rounded-lg p-3 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="font-bold text-gray-800">${r.role}</p>
-                                <p class="text-xs text-gray-500">Level ${r.level}</p>
-                            </div>
-                            ${StatusBadge(r.status)}
-                        </div>
-                        <div class="mt-3">
-                            <label for="user-select-${r.role.replace(/\s/g, '-')}" class="text-xs font-medium text-gray-600">Assigned User</label>
-                            <select id="user-select-${r.role.replace(/\s/g, '-')}" data-action="assign-user" data-role="${r.role}" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1 focus:ring-primary-500 focus:border-primary-500">
-                                <option value="">Select User</option>
-                                ${data.users.map(u => `<option value="${u}" ${u === r.user ? 'selected' : ''}>${u}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="mt-3 flex justify-between items-center text-xs text-gray-500">
-                            <div>
-                                <p>Signed: <span class="font-mono font-semibold text-gray-700">${r.signature || 'N/A'}</span></p>
-                                <p>Date: <span class="font-semibold text-gray-700">${r.date || 'N/A'}</span></p>
-                            </div>
-                            <div class="text-right">
-                                ${r.user === data.loggedInUser && (r.status === 'Not Started' || r.status === 'Pending') ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Sign</button>` : ''}
-                                ${r.user === data.loggedInUser && r.status === 'Signed' ? `<button class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400">Revoke</button>` : ''}
-                            </div>
-                        </div>
+                <div class="flex justify-between items-center mb-4">
+                    <div class="relative w-1/2">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" data-action="search-auth" value="${searchQuery}" placeholder="Search by role or user..." class="w-full border-gray-300 rounded-md shadow-sm text-sm pl-10">
                     </div>
-                `).join('')}
+                    <div class="flex items-center">
+                        <input type="checkbox" id="findMeToggle" data-action="toggle-find-me" class="h-4 w-4 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500" ${showFindMe ? 'checked' : ''}>
+                        <label for="findMeToggle" class="ml-2 text-sm font-medium text-gray-700">Find Me</label>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${filteredRoles.map(r => `
+                        <div class="border rounded-lg p-3 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-bold text-gray-800">${r.role}</p>
+                                    <p class="text-xs text-gray-500">Level ${r.level}</p>
+                                </div>
+                                ${StatusBadge(r.status)}
+                            </div>
+                            <div class="mt-3">
+                                <label for="user-select-${r.role.replace(/\s/g, '-')}" class="text-xs font-medium text-gray-600">Assigned User</label>
+                                <select id="user-select-${r.role.replace(/\s/g, '-')}" data-action="assign-user" data-role="${r.role}" class="w-full border-gray-300 rounded-md shadow-sm text-sm mt-1 focus:ring-primary-500 focus:border-primary-500">
+                                    <option value="">Select User</option>
+                                    ${data.users.map(u => `<option value="${u}" ${u === r.user ? 'selected' : ''}>${u}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="mt-3 flex justify-between items-center text-xs text-gray-500">
+                                <div>
+                                    <p>Signed: <span class="font-mono font-semibold text-gray-700">${r.signature || 'N/A'}</span></p>
+                                    <p>Date: <span class="font-semibold text-gray-700">${r.date || 'N/A'}</span></p>
+                                </div>
+                                <div class="text-right">
+                                    ${r.user === data.loggedInUser && (r.status === 'Not Started' || r.status === 'Pending') ? `<button data-action="sign-auth" data-role="${r.role}" class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500">Sign</button>` : ''}
+                                    ${r.user === data.loggedInUser && r.status === 'Signed' ? `<button data-action="revoke-auth" data-role="${r.role}" class="px-3 py-1.5 rounded-md font-semibold text-xs inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400">Revoke</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
         </div>
     `;
