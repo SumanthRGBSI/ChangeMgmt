@@ -528,8 +528,6 @@ const CollapsedDetails = (data) => `
         ${InfoItem("Supplier Coordinator", data.collapsed.supplierCoordinator)}
     </div>
 `;
-}
-
 const ExpandedDetails = (data) => `
     <div class="fade-in border-t border-gray-200 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
