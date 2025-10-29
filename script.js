@@ -631,7 +631,6 @@ const BoolInfoItem = (label, value, description) => `
         ` : ''}
     </div>
 `;
-}
 
 const RiskAndActionsCard = (data) => `
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm relative">
@@ -1062,7 +1061,7 @@ const AuthorizationTab = (data) => {
             </div>
         </div>
     `;
-
+};
 const KpiTile = (title, value, isActive) => {
     const kpiConfig = {
         "Total Count": {
@@ -1296,5 +1295,3 @@ const StatusHistoryCard = (data) => {
     </div>
     `;
 };
-
-}
