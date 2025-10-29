@@ -503,7 +503,7 @@ const PageHeader = (data) => {
         </div>
     </div>
 `;
-};
+}
 
 const DetailsCard = (data) => `
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -528,17 +528,18 @@ const CollapsedDetails = (data) => `
         ${InfoItem("Supplier Coordinator", data.collapsed.supplierCoordinator)}
     </div>
 `;
+}
 
 const ExpandedDetails = (data) => `
     <div class="fade-in border-t border-gray-200 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="md:row-span-2">
+        <div>
             ${renderTwoColumnDetailSection('Basic Information', data.basicInfo)}
         </div>
         <div>
             ${renderDetailSection('Supplier Details', data.supplierDetails)}
-        </div>
-        <div>
-            ${renderCollapsibleDetailSection('Related Part Number', data.relatedParts, 'related-parts', data.isRelatedPartsExpanded)}
+            <div class="mt-4">
+                ${renderCollapsibleDetailSection('Related Part Number', data.relatedParts, 'related-parts', data.isRelatedPartsExpanded)}
+            </div>
         </div>
         <div class="md:col-span-2">
             ${renderCollapsibleDetailSection('Additional Details', data.additionalDetails, 'additional-details', data.isAdditionalDetailsExpanded, true)}
@@ -559,6 +560,7 @@ const renderTwoColumnDetailSection = (title, dataObject) => `
         </div>
     </div>
 `;
+}
 
 const renderDetailSection = (title, dataObject) => `
     <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -568,6 +570,7 @@ const renderDetailSection = (title, dataObject) => `
         </dl>
     </div>
 `;
+}
 
 const renderCollapsibleDetailSection = (title, data, action, isExpanded, isBooleanInfo = false) => `
     <div>
@@ -592,6 +595,7 @@ const renderCollapsibleDetailSection = (title, data, action, isExpanded, isBoole
         : ''}
     </div>
 `;
+}
 
 const InfoItem = (label, value) => {
     // Check if value is an array of links
@@ -634,6 +638,7 @@ const BoolInfoItem = (label, value, description) => `
         ` : ''}
     </div>
 `;
+}
 
 const RiskAndActionsCard = (data) => `
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm relative">
@@ -650,6 +655,7 @@ const RiskAndActionsCard = (data) => `
           AuthorizationTab(data)}
     </div>
 `;
+}
 
 const AssessmentActions = (data) => {
     const { riskAssessment, users, riskLevels, statuses } = data;
@@ -684,6 +690,7 @@ const BulkActionDropdown = (type, label, options, isOpen, isDate = false) => `
         ` : ''}
     </div>
 `;
+}
 
 const AssessmentTab = (data) => {
     const { riskAssessment, users, riskLevels, statuses, isDocumentAccordionOpen } = data;
@@ -837,6 +844,7 @@ const ActionItemsTab = (data) => `
         </table>
     </div>
 `;
+}
 
 const UpdateRiskPanel = (data) => {
     const item = data.currentRiskItem;
