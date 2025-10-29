@@ -887,12 +887,12 @@ const UpdateRiskPanel = (data) => {
         </div>
     </div>
    `;
-   };
+   }; // <-- FIX #1: Was '}}', changed to '};'
 
 const HistoryTimeline = (history) => {
     if (!history || history.length === 0) {
         return '<p class="text-sm text-gray-500">No history available.</p>';
-    }
+    } // <-- FIX #2: Added this missing closing brace '}'
 
     return `
         <ul class="space-y-4">
@@ -1296,3 +1296,5 @@ const StatusHistoryCard = (data) => {
     </div>
     `;
 };
+
+}
