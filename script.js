@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('[data-action="toggle-assessment-group"]')) {
             const groupName = e.target.closest('[data-action="toggle-assessment-group"]').dataset.group;
             const group = state.riskAssessment.groups.find(g => g.name === groupName);
-            if (group) {
+            if (group) {.
                 const categoryIds = group.categories.map(c => c.id);
                 const allSelectedInGroup = categoryIds.every(id => state.riskAssessment.selected.includes(id));
                 if (allSelectedInGroup) {
@@ -892,6 +892,7 @@ const UpdateRiskPanel = (data) => {
 const HistoryTimeline = (history) => {
     if (!history || history.length === 0) {
         return '<p class="text-sm text-gray-500">No history available.</p>';
+    }
 
     return `
         <ul class="space-y-4">
@@ -1138,7 +1139,7 @@ const AttachmentsCell = (attachments, categoryId, isDocumentAccordionOpen) => {
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                             </button>
                                             <button class="text-red-600 hover:underline text-xs ml-2">
-                                                <svg xmlns="http://www.w3.org/2S00/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                                             </button>
                                         </td>
                                     </tr>
