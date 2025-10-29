@@ -503,7 +503,6 @@ const PageHeader = (data) => {
         </div>
     </div>
 `;
-}
 
 const DetailsCard = (data) => `
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -558,7 +557,6 @@ const renderTwoColumnDetailSection = (title, dataObject) => `
         </div>
     </div>
 `;
-}
 
 const renderDetailSection = (title, dataObject) => `
     <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -568,7 +566,6 @@ const renderDetailSection = (title, dataObject) => `
         </dl>
     </div>
 `;
-}
 
 const renderCollapsibleDetailSection = (title, data, action, isExpanded, isBooleanInfo = false) => `
     <div>
@@ -593,7 +590,6 @@ const renderCollapsibleDetailSection = (title, data, action, isExpanded, isBoole
         : ''}
     </div>
 `;
-}
 
 const InfoItem = (label, value) => {
     // Check if value is an array of links
