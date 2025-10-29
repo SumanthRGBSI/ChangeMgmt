@@ -649,7 +649,6 @@ const RiskAndActionsCard = (data) => `
           AuthorizationTab(data)}
     </div>
 `;
-}
 
 const AssessmentActions = (data) => {
     const { riskAssessment, users, riskLevels, statuses } = data;
@@ -666,7 +665,6 @@ const AssessmentActions = (data) => {
             </div>
         </div>
     `;
-}
 
 const BulkActionDropdown = (type, label, options, isOpen, isDate = false) => `
     <div class="relative bulk-action-dropdown-container">
@@ -684,7 +682,6 @@ const BulkActionDropdown = (type, label, options, isOpen, isDate = false) => `
         ` : ''}
     </div>
 `;
-}
 
 const AssessmentTab = (data) => {
     const { riskAssessment, users, riskLevels, statuses, isDocumentAccordionOpen } = data;
@@ -838,7 +835,6 @@ const ActionItemsTab = (data) => `
         </table>
     </div>
 `;
-}
 
 const UpdateRiskPanel = (data) => {
     const item = data.currentRiskItem;
@@ -897,7 +893,6 @@ const UpdateRiskPanel = (data) => {
 const HistoryTimeline = (history) => {
     if (!history || history.length === 0) {
         return '<p class="text-sm text-gray-500">No history available.</p>';
-    }
 
     return `
         <ul class="space-y-4">
@@ -1067,7 +1062,6 @@ const AuthorizationTab = (data) => {
             </div>
         </div>
     `;
-}
 
 const KpiTile = (title, value, isActive) => {
     const kpiConfig = {
