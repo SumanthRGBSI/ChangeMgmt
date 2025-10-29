@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('[data-action="toggle-assessment-group"]')) {
             const groupName = e.target.closest('[data-action="toggle-assessment-group"]').dataset.group;
             const group = state.riskAssessment.groups.find(g => g.name === groupName);
-            if (group) {.
+            if (group) {
                 const categoryIds = group.categories.map(c => c.id);
                 const allSelectedInGroup = categoryIds.every(id => state.riskAssessment.selected.includes(id));
                 if (allSelectedInGroup) {
